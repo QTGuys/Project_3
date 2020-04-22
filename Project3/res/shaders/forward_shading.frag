@@ -25,6 +25,7 @@ uniform vec3 lightColor[MAX_LIGHTS];
 uniform int lightCount;
 
 in vec2 vTexCoords;
+in vec3 aNormal;
 
 out vec4 outColor;
 
@@ -35,5 +36,5 @@ void main(void)
     // Diffuse
     // Specular
 
-    outColor.rgb = albedo.rgb;// * texture(albedoTexture, vTexCoords).rgb;
+    outColor.rgb = aNormal;//texture(albedoTexture, vTexCoords).rgb;
 }
