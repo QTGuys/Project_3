@@ -8,15 +8,17 @@ layout(location=4) in vec3 bitangent;
 
 uniform mat4 projectionMatrix;
 uniform mat4 worldViewMatrix;
-//pass world matrix
+uniform mat4 worldMatrix;
 
 out vec2 vTexCoords;
 out vec3 aNormal;
+out vec3 fragPos;
 
 void main(void)
 {
-    //Not in world coords! need no multiply by worldMatrix
-    aNormal = normal;
+    fragPos = vec3(worldMatrix*vec4(position,1.0));
+    aNormal = mat3(transpose(inverse(worldMatrix)))*normal;
+    aNormal = normalize(aNormal);
     vTexCoords = texCoords;
-    gl_Position = projectionMatrix * worldViewMatrix * vec4(position, 1);
+    gl_Position = projectionMatrix * worldViewMatrix * vec4(position, 1.0);
 }

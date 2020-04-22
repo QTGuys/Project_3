@@ -1,5 +1,7 @@
 #version 330 core
 
+//Camera
+uniform vec3 cameraPos;
 // Matrices
 uniform mat4 worldViewMatrix;
 uniform mat3 normalMatrix;
@@ -22,19 +24,71 @@ uniform int lightType[MAX_LIGHTS];
 uniform vec3 lightPosition[MAX_LIGHTS];
 uniform vec3 lightDirection[MAX_LIGHTS];
 uniform vec3 lightColor[MAX_LIGHTS];
+uniform float lightRange[MAX_LIGHTS];
 uniform int lightCount;
 
 in vec2 vTexCoords;
 in vec3 aNormal;
+in vec3 fragPos;
 
 out vec4 outColor;
 
 void main(void)
 {
+    vec3 output = vec3(0);
+    vec3 directional_color = vec3(0);
+    vec3 point_color = vec3(0);
+
+    for(int i = 0; i<lightCount;++i)
+    {
+        vec3 view_direction = cameraPos - fragPos;
+
+        if(lightType[i] == 0)
+        {
+            vec3 direction = normalize(lightPosition[i]- fragPos);
+
+            //diffuse shading
+            float diff = max(dot(aNormal, direction),0.0);
+
+            //specularo shadoringoru
+            vec3 reflect_dir = reflect(-direction,aNormal);
+            float spec = pow(max(dot(view_direction, reflect_dir),0.0),32.0);
+
+            //attenuation (cutre, linear)
+            float distance = length(lightPosition[i]-fragPos);
+            float attenuation = max(1.0-(distance/lightRange[i]),0.0);
+            attenuation = pow(attenuation,2.0);
+
+            //combine
+            vec3 ambient = lightColor[i] * texture(albedoTexture,vTexCoords).rgb;
+            ambient *= attenuation;
+            vec3 diffuse_res =vec3(diff * texture(albedoTexture,vTexCoords));
+            diffuse_res *= attenuation;
+                       vec3 specular_res = spec *vec3(0.2);
+            specular_res *= attenuation;
+            point_color += (ambient + diffuse_res + specular_res);
+        }
+        else if(lightType[i] == 1)
+        {
+            vec3 direction = normalize(-lightDirection[i]);
+
+            //diffuse shading
+            float diff = max(dot(aNormal, direction),0.0);
+
+            //specular shading
+            vec3 reflect_direction = reflect(-direction,aNormal);
+            float spec = pow(max(dot(view_direction, reflect_direction),0.0),32.0);
+
+            vec3 ambient = lightColor[i] * texture(albedoTexture,vTexCoords).rgb;
+            vec3 diffuse_res =vec3(diff * texture(albedoTexture,vTexCoords));
+            vec3 specular_res = spec *vec3(0.2);
+            directional_color = ambient + diffuse_res + specular_res;
+        }
+    }
     // TODO: Local illumination
     // Ambient
     // Diffuse
     // Specular
-
-    outColor.rgb = aNormal;//texture(albedoTexture, vTexCoords).rgb;
+    output = directional_color + point_color;
+    outColor.rgb =output;//texture(albedoTexture, vTexCoords).rgb;
 }

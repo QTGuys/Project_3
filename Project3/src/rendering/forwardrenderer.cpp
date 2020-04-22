@@ -22,16 +22,19 @@ static void sendLightsToProgram(QOpenGLShaderProgram &program, const QMatrix4x4 
     QVector<QVector3D> lightPosition;
     QVector<QVector3D> lightDirection;
     QVector<QVector3D> lightColor;
+    QVector<float>lightRange;
+
     for (auto entity : scene->entities)
     {
         if (entity->active && entity->lightSource != nullptr)
         {
             auto light = entity->lightSource;
             lightType.push_back(int(light->type));
-            lightPosition.push_back(QVector3D(viewMatrix * entity->transform->matrix() * QVector4D(0.0, 0.0, 0.0, 1.0)));
-            lightDirection.push_back(QVector3D(viewMatrix * entity->transform->matrix() * QVector4D(0.0, 1.0, 0.0, 0.0)));
+            lightPosition.push_back(QVector3D( entity->transform->matrix() * QVector4D(0.0, 0.0, 0.0, 1.0)));
+            lightDirection.push_back(QVector3D(entity->transform->matrix() * QVector4D(0.0, 1.0, 0.0, 0.0)));
             QVector3D color(light->color.redF(), light->color.greenF(), light->color.blueF());
             lightColor.push_back(color * light->intensity);
+            lightRange.push_back(light->range);
         }
     }
     if (lightPosition.size() > 0)
@@ -40,6 +43,8 @@ static void sendLightsToProgram(QOpenGLShaderProgram &program, const QMatrix4x4 
         program.setUniformValueArray("lightPosition", &lightPosition[0], lightPosition.size());
         program.setUniformValueArray("lightDirection", &lightDirection[0], lightDirection.size());
         program.setUniformValueArray("lightColor", &lightColor[0], lightColor.size());
+        program.setUniformValueArray("lightRange", &lightRange[0],lightRange.size(),1);
+
     }
     program.setUniformValue("lightCount", lightPosition.size());
 }
@@ -186,9 +191,12 @@ void ForwardRenderer::passMeshes(Camera *camera)
                 QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix;
                 QMatrix3x3 normalMatrix = worldViewMatrix.normalMatrix();
 
+
                 program.setUniformValue("worldMatrix", worldMatrix);
                 program.setUniformValue("worldViewMatrix", worldViewMatrix);
                 program.setUniformValue("normalMatrix", normalMatrix);
+                program.setUniformValue("worldMatrix", worldMatrix);
+                program.setUniformValue("cameraPos", camera->position);
 
                 int materialIndex = 0;
                 for (auto submesh : mesh->submeshes)
