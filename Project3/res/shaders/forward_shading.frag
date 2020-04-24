@@ -35,7 +35,7 @@ out vec4 outColor;
 
 void main(void)
 {
-    vec3 output = vec3(0);
+    vec3 res = vec3(0);
     vec3 directional_color = vec3(0);
     vec3 point_color = vec3(0);
 
@@ -89,6 +89,6 @@ void main(void)
     // Ambient
     // Diffuse
     // Specular
-    output = directional_color + point_color;
-    outColor.rgb =output;//texture(albedoTexture, vTexCoords).rgb;
+    res = directional_color + point_color;
+    outColor.rgb =res;//texture(albedoTexture, vTexCoords).rgb;
 }
