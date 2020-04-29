@@ -195,7 +195,6 @@ void ForwardRenderer::passMeshes(Camera *camera)
                 program.setUniformValue("worldMatrix", worldMatrix);
                 program.setUniformValue("worldViewMatrix", worldViewMatrix);
                 program.setUniformValue("normalMatrix", normalMatrix);
-                program.setUniformValue("worldMatrix", worldMatrix);
                 program.setUniformValue("cameraPos", camera->position);
 
                 int materialIndex = 0;

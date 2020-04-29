@@ -17,7 +17,7 @@ out vec3 fragPos;
 void main(void)
 {
     fragPos = vec3(worldMatrix*vec4(position,1.0));
-    aNormal = mat3(transpose(inverse(worldMatrix)))*normal;
+    aNormal =vec3(worldMatrix*vec4(normal,0.0));
     aNormal = normalize(aNormal);
     vTexCoords = texCoords;
     gl_Position = projectionMatrix * worldViewMatrix * vec4(position, 1.0);
