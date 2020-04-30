@@ -1,6 +1,7 @@
 #include "ui/openglwidget.h"
 #include <QOpenGLDebugLogger>
 #include "rendering/forwardrenderer.h"
+#include "rendering/deferredrenderer.h"
 #include "resources/resourcemanager.h"
 #include "resources/texture.h"
 #include "globals.h"
@@ -40,6 +41,7 @@ OpenGLWidget::OpenGLWidget(QWidget *parent)
     interaction = new Interaction();
     selection = new Selection();
     renderer = new ForwardRenderer();
+    def_renderer = new DeferredRenderer();
     miscSettings = new MiscSettings();
 
     // global
@@ -53,6 +55,7 @@ OpenGLWidget::~OpenGLWidget()
 {
     delete miscSettings;
     delete renderer;
+    delete def_renderer;
     delete selection;
     delete interaction;
     delete camera;
@@ -87,6 +90,7 @@ void OpenGLWidget::initializeGL()
     gl->glDisable(GL_BLEND);
 
     renderer->initialize();
+    def_renderer->initialize();
 }
 
 void OpenGLWidget::resizeGL(int w, int h)
@@ -102,7 +106,9 @@ void OpenGLWidget::paintGL()
 
     camera->prepareMatrices();
 
-    renderer->render(camera);
+    def_renderer->render(camera);
+    //renderer->render(camera);
+
 }
 
 void OpenGLWidget::finalizeGL()
@@ -217,7 +223,8 @@ QImage OpenGLWidget::getScreenshot()
 
 QVector<QString> OpenGLWidget::getTextureNames()
 {
-    QVector<QString> textureNames = renderer->getTextures();
+    QVector<QString> textureNames = def_renderer->getTextures();
+    //textureNames.append(def_renderer->getTextures());
     return textureNames;
 }
 

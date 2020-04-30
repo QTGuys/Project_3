@@ -65,6 +65,7 @@ private:
     Interaction *interaction = nullptr;
     Selection *selection = nullptr;
     Renderer *renderer = nullptr;
+    Renderer *def_renderer = nullptr;
 };
 
 #endif // OPENGLWIDGET_H

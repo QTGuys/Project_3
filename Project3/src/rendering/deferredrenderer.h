@@ -4,6 +4,7 @@
 #include "renderer.h"
 
 class FramebufferObject;
+class ShaderProgram;
 
 class DeferredRenderer : public Renderer
 {
@@ -21,6 +22,11 @@ public:
     void CreateGBuffer(int width, int height);
     void DeleteGBuffer();
 
+    void passBlit();
+private:
+
+    void passMeshes(Camera* camera);
+
 public:
 
     FramebufferObject* gBuffer;
@@ -29,6 +35,10 @@ public:
     uint tNormal = 0;
     uint tMaterial = 0;
     uint tDepth = 0;
+
+private:
+    ShaderProgram *deferredShading = nullptr;
+    ShaderProgram *blitProgram;
 
 };
 
