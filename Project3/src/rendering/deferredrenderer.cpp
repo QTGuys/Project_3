@@ -17,6 +17,7 @@ DeferredRenderer::DeferredRenderer()
     addTexture("Positions");
     addTexture("Normals");
     addTexture("Material");
+    addTexture("Depth");
 }
 
 DeferredRenderer::~DeferredRenderer()
@@ -34,7 +35,7 @@ void DeferredRenderer::initialize()
     deferredShading->fragmentShaderFilename = "res/shaders/deferred_shading.frag";
     deferredShading->includeForSerialization = false;
 
-    CreateGBuffer(camera->viewportWidth,camera->viewportHeight);
+    CreateBuffers(camera->viewportWidth,camera->viewportHeight);
 
     blitProgram = resourceManager->createShaderProgram();
     blitProgram->name = "Blit";
@@ -47,18 +48,22 @@ void DeferredRenderer::initialize()
 
 void DeferredRenderer::finalize()
 {
-    DeleteGBuffer();
+    DeleteBuffers();
 }
 
 void DeferredRenderer::resize(int width, int height)
 {
-    DeleteGBuffer();
-    CreateGBuffer(width,height);
+    DeleteBuffers();
+    CreateBuffers(width,height);
 
 }
 void DeferredRenderer::render(Camera *camera)
 {
+    OpenGLErrorGuard guard("DeferredRenderer::render()");
+
     gBuffer->bind();
+
+    glEnable(GL_DEPTH_TEST);
 
     // Clear color
     gl->glClearDepth(1.0);
@@ -78,7 +83,7 @@ void DeferredRenderer::render(Camera *camera)
     passBlit();
 }
 
-void DeferredRenderer::CreateGBuffer(int width, int height)
+void DeferredRenderer::CreateBuffers(int width, int height)
 {
     gBuffer = new FramebufferObject();
     gBuffer->create();
@@ -124,9 +129,42 @@ void DeferredRenderer::CreateGBuffer(int width, int height)
     gl->glDrawBuffers(3,attachments);
 
     gBuffer->checkStatus();
+    gBuffer->release();
+
+    fBuffer=new FramebufferObject();
+    fBuffer->create();
+    fBuffer->bind();
+
+    gl->glGenTextures(1, &fboColor);
+    gl->glBindTexture(GL_TEXTURE_2D, fboColor);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+    gl->glGenTextures(1, &fboDepth);
+    gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+
+    // Attach textures to the fbo
+
+    fBuffer->bind();
+    fBuffer->addColorAttachment(0, fboColor);
+    fBuffer->addDepthAttachment(fboDepth);
+    fBuffer->checkStatus();
+    fBuffer->release();
+
 }
 
-void DeferredRenderer::DeleteGBuffer()
+void DeferredRenderer::DeleteBuffers()
 {
     glDeleteTextures(1,&tPosition);
     glDeleteTextures(1,&tNormal);
@@ -134,6 +172,12 @@ void DeferredRenderer::DeleteGBuffer()
     glDeleteTextures(1,&tDepth);
 
     gBuffer->destroy();
+
+    gl->glDeleteTextures(1, &fboColor);
+    gl->glDeleteTextures(1, &fboDepth);
+
+    fBuffer->destroy();
+
 }
 
 void DeferredRenderer::passMeshes(Camera *camera)
@@ -169,7 +213,7 @@ void DeferredRenderer::passMeshes(Camera *camera)
             {
                 QMatrix4x4 worldMatrix = meshRenderer->entity->transform->matrix();
                 QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix;
-                QMatrix3x3 normalMatrix = worldViewMatrix.normalMatrix();
+                QMatrix3x3 normalMatrix = worldMatrix.normalMatrix();
 
 
                 program.setUniformValue("worldMatrix", worldMatrix);
@@ -259,12 +303,21 @@ void DeferredRenderer::passBlit()
             program.setUniformValue("colorTexture", 0);
             gl->glActiveTexture(GL_TEXTURE0);
 
-            if (shownTexture() == "Positions") {
+            if (shownTexture() == "Positions")
+            {
                 gl->glBindTexture(GL_TEXTURE_2D, tPosition);
-            }  else if(shownTexture() == "Normals"){
+            }
+            else if(shownTexture() == "Normals")
+            {
                  gl->glBindTexture(GL_TEXTURE_2D, tNormal);
-            } else if(shownTexture() == "Material"){
+            }
+            else if(shownTexture() == "Material")
+            {
                  gl->glBindTexture(GL_TEXTURE_2D, tMaterial);
+            }
+            else if(shownTexture() == "Depth")
+            {
+                 gl->glBindTexture(GL_TEXTURE_2D, tDepth);
             }
 
             resourceManager->quad->submeshes[0]->draw();

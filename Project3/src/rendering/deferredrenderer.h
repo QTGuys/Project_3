@@ -19,8 +19,8 @@ public:
     void resize(int width, int height) override;
     void render(Camera *camera) override;
 
-    void CreateGBuffer(int width, int height);
-    void DeleteGBuffer();
+    void CreateBuffers(int width, int height);
+    void DeleteBuffers();
 
     void passBlit();
 private:
@@ -30,11 +30,15 @@ private:
 public:
 
     FramebufferObject* gBuffer = nullptr;
+    FramebufferObject* fBuffer = nullptr;
 
     uint tPosition = 0;
     uint tNormal = 0;
     uint tMaterial = 0;
     uint tDepth = 0;
+
+   uint fboColor = 0;
+   uint fboDepth = 0;
 
 private:
     ShaderProgram *deferredShading = nullptr;
