@@ -269,25 +269,28 @@ void ForwardRenderer::passMeshes(Camera *camera)
 
 void ForwardRenderer::passBlit()
 {
-    gl->glDisable(GL_DEPTH_TEST);
-
-    QOpenGLShaderProgram &program = blitProgram->program;
-
-    if (program.bind())
+    if(textures.contains(shownTexture()))
     {
-        program.setUniformValue("colorTexture", 0);
-        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glDisable(GL_DEPTH_TEST);
 
-        if (shownTexture() == "Final render") {
-            gl->glBindTexture(GL_TEXTURE_2D, fboColor);
-        } else if(shownTexture() == "White") {
-            gl->glBindTexture(GL_TEXTURE_2D, resourceManager->texWhite->textureId());
-        } else if(shownTexture() == "Black"){
-            gl->glBindTexture(GL_TEXTURE_2D,resourceManager->texBlack->textureId());
+        QOpenGLShaderProgram &program = blitProgram->program;
+
+        if (program.bind())
+        {
+            program.setUniformValue("colorTexture", 0);
+            gl->glActiveTexture(GL_TEXTURE0);
+
+            if (shownTexture() == "Final render") {
+                gl->glBindTexture(GL_TEXTURE_2D, fboColor);
+            } else if(shownTexture() == "White") {
+                gl->glBindTexture(GL_TEXTURE_2D, resourceManager->texWhite->textureId());
+            } else if(shownTexture() == "Black"){
+                gl->glBindTexture(GL_TEXTURE_2D,resourceManager->texBlack->textureId());
+            }
+
+            resourceManager->quad->submeshes[0]->draw();
         }
 
-        resourceManager->quad->submeshes[0]->draw();
+        gl->glEnable(GL_DEPTH_TEST);
     }
-
-    gl->glEnable(GL_DEPTH_TEST);
 }

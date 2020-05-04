@@ -248,28 +248,28 @@ void DeferredRenderer::passMeshes(Camera *camera)
 
 void DeferredRenderer::passBlit()
 {
-    gl->glDisable(GL_DEPTH_TEST);
-
-    QOpenGLShaderProgram &program = blitProgram->program;
-
-    if (program.bind())
+    if(textures.contains(shownTexture()))
     {
-        program.setUniformValue("colorTexture", 0);
-        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glDisable(GL_DEPTH_TEST);
 
-        if (shownTexture() == "Positions") {
-            gl->glBindTexture(GL_TEXTURE_2D, tPosition);
-        }  else if(shownTexture() == "Normals"){
-             gl->glBindTexture(GL_TEXTURE_2D, tNormal);
-        } else if(shownTexture() == "Material"){
-             gl->glBindTexture(GL_TEXTURE_2D, tMaterial);
-        } else
-              gl->glBindTexture(GL_TEXTURE_2D, resourceManager->texWhite->textureId());
+        QOpenGLShaderProgram &program = blitProgram->program;
 
+        if (program.bind())
+        {
+            program.setUniformValue("colorTexture", 0);
+            gl->glActiveTexture(GL_TEXTURE0);
 
+            if (shownTexture() == "Positions") {
+                gl->glBindTexture(GL_TEXTURE_2D, tPosition);
+            }  else if(shownTexture() == "Normals"){
+                 gl->glBindTexture(GL_TEXTURE_2D, tNormal);
+            } else if(shownTexture() == "Material"){
+                 gl->glBindTexture(GL_TEXTURE_2D, tMaterial);
+            }
 
-        resourceManager->quad->submeshes[0]->draw();
+            resourceManager->quad->submeshes[0]->draw();
+        }
+
+        gl->glEnable(GL_DEPTH_TEST);
     }
-
-    gl->glEnable(GL_DEPTH_TEST);
 }

@@ -29,7 +29,7 @@ private:
 
 public:
 
-    FramebufferObject* gBuffer;
+    FramebufferObject* gBuffer = nullptr;
 
     uint tPosition = 0;
     uint tNormal = 0;
@@ -38,7 +38,7 @@ public:
 
 private:
     ShaderProgram *deferredShading = nullptr;
-    ShaderProgram *blitProgram;
+    ShaderProgram *blitProgram = nullptr;
 
 };
 

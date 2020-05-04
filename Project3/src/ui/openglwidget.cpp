@@ -98,6 +98,7 @@ void OpenGLWidget::resizeGL(int w, int h)
     camera->viewportWidth = w;
     camera->viewportHeight = h;
     renderer->resize(w, h);
+    def_renderer->resize(w,h);
 }
 
 void OpenGLWidget::paintGL()
@@ -107,7 +108,7 @@ void OpenGLWidget::paintGL()
     camera->prepareMatrices();
 
     def_renderer->render(camera);
-    //renderer->render(camera);
+    renderer->render(camera);
 
 }
 
@@ -116,6 +117,7 @@ void OpenGLWidget::finalizeGL()
     makeCurrent();
 
     renderer->finalize();
+    def_renderer->finalize();
 
     resourceManager->destroyResources();
 
@@ -223,14 +225,16 @@ QImage OpenGLWidget::getScreenshot()
 
 QVector<QString> OpenGLWidget::getTextureNames()
 {
-    QVector<QString> textureNames = def_renderer->getTextures();
-    //textureNames.append(def_renderer->getTextures());
+    QVector<QString> textureNames = renderer->getTextures();
+    textureNames.append(def_renderer->getTextures());
     return textureNames;
 }
 
 void OpenGLWidget::showTextureWithName(QString textureName)
 {
     renderer->showTexture(textureName);
+    def_renderer->showTexture(textureName);
+
 }
 void OpenGLWidget::frame()
 {
