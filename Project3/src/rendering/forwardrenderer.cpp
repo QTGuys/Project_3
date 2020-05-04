@@ -190,8 +190,7 @@ void ForwardRenderer::passMeshes(Camera *camera)
             {
                 QMatrix4x4 worldMatrix = meshRenderer->entity->transform->matrix();
                 QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix;
-                QMatrix3x3 normalMatrix = worldViewMatrix.normalMatrix();
-
+                QMatrix3x3 normalMatrix = worldMatrix.normalMatrix();
 
                 program.setUniformValue("worldMatrix", worldMatrix);
                 program.setUniformValue("worldViewMatrix", worldViewMatrix);

@@ -35,6 +35,12 @@ void DeferredRenderer::initialize()
     deferredShading->fragmentShaderFilename = "res/shaders/deferred_shading.frag";
     deferredShading->includeForSerialization = false;
 
+    gBuffer = new FramebufferObject();
+    gBuffer->create();
+
+    fBuffer=new FramebufferObject();
+    fBuffer->create();
+
     CreateBuffers(camera->viewportWidth,camera->viewportHeight);
 
     blitProgram = resourceManager->createShaderProgram();
@@ -42,7 +48,6 @@ void DeferredRenderer::initialize()
     blitProgram->vertexShaderFilename = "res/shaders/blit.vert";
     blitProgram->fragmentShaderFilename = "res/shaders/blit.frag";
     blitProgram->includeForSerialization = false;
-
 
 }
 
@@ -62,8 +67,6 @@ void DeferredRenderer::render(Camera *camera)
     OpenGLErrorGuard guard("DeferredRenderer::render()");
 
     gBuffer->bind();
-
-    glEnable(GL_DEPTH_TEST);
 
     // Clear color
     gl->glClearDepth(1.0);
@@ -85,13 +88,11 @@ void DeferredRenderer::render(Camera *camera)
 
 void DeferredRenderer::CreateBuffers(int width, int height)
 {
-    gBuffer = new FramebufferObject();
-    gBuffer->create();
     gBuffer->bind();
 
     glGenTextures(1,&tPosition);
     glBindTexture(GL_TEXTURE_2D,tPosition);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB16F,width,height,0,GL_RGB,GL_FLOAT,NULL);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,width,height,0,GL_RGB,GL_UNSIGNED_BYTE,NULL);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -100,7 +101,7 @@ void DeferredRenderer::CreateBuffers(int width, int height)
 
     glGenTextures(1,&tNormal);
     glBindTexture(GL_TEXTURE_2D,tNormal);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB16F,width,height,0,GL_RGB,GL_FLOAT,NULL);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,width,height,0,GL_RGB,GL_UNSIGNED_BYTE,NULL);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -131,8 +132,6 @@ void DeferredRenderer::CreateBuffers(int width, int height)
     gBuffer->checkStatus();
     gBuffer->release();
 
-    fBuffer=new FramebufferObject();
-    fBuffer->create();
     fBuffer->bind();
 
     gl->glGenTextures(1, &fboColor);
@@ -171,13 +170,8 @@ void DeferredRenderer::DeleteBuffers()
     glDeleteTextures(1,&tMaterial);
     glDeleteTextures(1,&tDepth);
 
-    gBuffer->destroy();
-
     gl->glDeleteTextures(1, &fboColor);
     gl->glDeleteTextures(1, &fboDepth);
-
-    fBuffer->destroy();
-
 }
 
 void DeferredRenderer::passMeshes(Camera *camera)
@@ -268,7 +262,7 @@ void DeferredRenderer::passMeshes(Camera *camera)
                 QMatrix4x4 worldMatrix = lightSource->entity->transform->matrix();
                 QMatrix4x4 scaleMatrix; scaleMatrix.scale(0.1f, 0.1f, 0.1f);
                 QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix * scaleMatrix;
-                QMatrix3x3 normalMatrix = worldViewMatrix.normalMatrix();
+                QMatrix3x3 normalMatrix = worldMatrix.normalMatrix();
                 program.setUniformValue("worldMatrix", worldMatrix);
                 program.setUniformValue("worldViewMatrix", worldViewMatrix);
                 program.setUniformValue("normalMatrix", normalMatrix);

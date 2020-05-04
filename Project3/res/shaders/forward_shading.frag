@@ -92,5 +92,5 @@ void main(void)
     // Diffuse
     // Specular
     res = directional_color + point_color;
-    outColor.rgb =res;//texture(albedoTexture, vTexCoords).rgb;
+    outColor.rgb =normalize(aNormal);//texture(albedoTexture, vTexCoords).rgb;
 }
