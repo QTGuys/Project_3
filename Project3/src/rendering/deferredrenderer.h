@@ -5,6 +5,7 @@
 
 class FramebufferObject;
 class ShaderProgram;
+class QOpenGLShaderProgram;
 
 class DeferredRenderer : public Renderer
 {
@@ -24,7 +25,7 @@ public:
 
     void passBlit();
 private:
-
+    void passLightsToProgram();
     void passMeshes(Camera* camera);
 
 public:
@@ -42,6 +43,7 @@ public:
 
 private:
     ShaderProgram *deferredShading = nullptr;
+    ShaderProgram* deferredLightingShading = nullptr;
     ShaderProgram *blitProgram = nullptr;
 
 };

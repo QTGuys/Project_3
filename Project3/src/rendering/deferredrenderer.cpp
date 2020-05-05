@@ -18,6 +18,7 @@ DeferredRenderer::DeferredRenderer()
     addTexture("Normals");
     addTexture("Material");
     addTexture("Depth");
+    addTexture("Final Deferred");
 }
 
 DeferredRenderer::~DeferredRenderer()
@@ -35,6 +36,8 @@ void DeferredRenderer::initialize()
     deferredShading->fragmentShaderFilename = "res/shaders/deferred_shading.frag";
     deferredShading->includeForSerialization = false;
 
+
+
     gBuffer = new FramebufferObject();
     gBuffer->create();
 
@@ -48,6 +51,12 @@ void DeferredRenderer::initialize()
     blitProgram->vertexShaderFilename = "res/shaders/blit.vert";
     blitProgram->fragmentShaderFilename = "res/shaders/blit.frag";
     blitProgram->includeForSerialization = false;
+
+    deferredLightingShading = resourceManager->createShaderProgram();
+    deferredLightingShading->name = "Deferred Lighting shading";
+    deferredLightingShading->vertexShaderFilename = "res/shaders/deferred_lighting_shading.vert";
+    deferredLightingShading->fragmentShaderFilename = "res/shaders/deferred_lighting_shading.frag";
+    deferredLightingShading->includeForSerialization = false;
 
 }
 
@@ -66,6 +75,8 @@ void DeferredRenderer::render(Camera *camera)
 {
     OpenGLErrorGuard guard("DeferredRenderer::render()");
 
+    //-----------------Geometry Pass------------------//
+    glEnable(GL_DEPTH_TEST);
     gBuffer->bind();
 
     // Clear color
@@ -82,9 +93,26 @@ void DeferredRenderer::render(Camera *camera)
     gBuffer->release();
 
     gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    //----------------------------------------------------//
 
+    //---------------------Shading Pass--------------//
+
+    fBuffer->bind();
+     passLightsToProgram();
+    gl->glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tPosition);
+    gl->glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, tNormal);
+    gl->glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, tMaterial);
+    // also send light relevant uniforms
+    resourceManager->quad->submeshes[0]->draw();
+    fBuffer->release();
+
+    //------------------------------------------------//
     passBlit();
 }
+
 
 void DeferredRenderer::CreateBuffers(int width, int height)
 {
@@ -173,6 +201,46 @@ void DeferredRenderer::DeleteBuffers()
     gl->glDeleteTextures(1, &fboColor);
     gl->glDeleteTextures(1, &fboDepth);
 }
+
+void DeferredRenderer::passLightsToProgram()
+{
+    QOpenGLShaderProgram &program = deferredLightingShading->program;
+
+    if (program.bind())
+    {
+
+         QVector<int> lightType;
+         QVector<QVector3D> lightPosition;
+         QVector<QVector3D> lightDirection;
+         QVector<QVector3D> lightColor;
+         QVector<float>lightRange;
+
+         for (auto entity : scene->entities)
+         {
+             if (entity->active && entity->lightSource != nullptr)
+             {
+                 auto light = entity->lightSource;
+                 lightType.push_back(int(light->type));
+                 lightPosition.push_back(QVector3D( entity->transform->matrix() * QVector4D(0.0, 0.0, 0.0, 1.0)));
+                 lightDirection.push_back(QVector3D(entity->transform->matrix() * QVector4D(0.0, 1.0, 0.0, 0.0)));
+                 QVector3D color(light->color.redF(), light->color.greenF(), light->color.blueF());
+                 lightColor.push_back(color * light->intensity);
+                 lightRange.push_back(light->range);
+             }
+         }
+         if (lightPosition.size() > 0)
+         {
+             program.setUniformValueArray("lightType", &lightType[0], lightType.size());
+             program.setUniformValueArray("lightPosition", &lightPosition[0], lightPosition.size());
+             program.setUniformValueArray("lightDirection", &lightDirection[0], lightDirection.size());
+             program.setUniformValueArray("lightColor", &lightColor[0], lightColor.size());
+             program.setUniformValueArray("lightRange", &lightRange[0],lightRange.size(),1);
+
+         }
+         program.setUniformValue("lightCount", lightPosition.size());
+     }
+}
+
 
 void DeferredRenderer::passMeshes(Camera *camera)
 {
@@ -312,6 +380,10 @@ void DeferredRenderer::passBlit()
             else if(shownTexture() == "Depth")
             {
                  gl->glBindTexture(GL_TEXTURE_2D, tDepth);
+            }
+            else if(shownTexture() == "Final Deferred")
+            {
+                gl->glBindTexture(GL_TEXTURE_2D, fboColor);
             }
 
             resourceManager->quad->submeshes[0]->draw();
