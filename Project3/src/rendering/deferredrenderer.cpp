@@ -98,16 +98,15 @@ void DeferredRenderer::render(Camera *camera)
     //---------------------Shading Pass--------------//
 
     fBuffer->bind();
-     passLightsToProgram();
-    gl->glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tPosition);
-    gl->glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, tNormal);
-    gl->glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, tMaterial);
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    passLightsToProgram();
+
     // also send light relevant uniforms
     resourceManager->quad->submeshes[0]->draw();
     fBuffer->release();
+
+    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     //------------------------------------------------//
     passBlit();
@@ -208,6 +207,17 @@ void DeferredRenderer::passLightsToProgram()
 
     if (program.bind())
     {
+        program.setUniformValue("gPosition",0);
+        gl->glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, tPosition);
+
+        program.setUniformValue("gNormal",1);
+        gl->glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, tNormal);
+
+        program.setUniformValue("gAlbedoSpec",2);
+        gl->glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, tMaterial);
 
          QVector<int> lightType;
          QVector<QVector3D> lightPosition;
@@ -238,6 +248,7 @@ void DeferredRenderer::passLightsToProgram()
 
          }
          program.setUniformValue("lightCount", lightPosition.size());
+         program.setUniformValue("viewPos",camera->position);
      }
 }
 
