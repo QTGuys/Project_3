@@ -27,6 +27,7 @@ protected:
     void addTexture(QString textureName);
     QVector<QString> textures;
     QString m_shownTexture;
+
 };
 
 #endif // RENDERER_H

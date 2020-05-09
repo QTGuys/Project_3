@@ -40,53 +40,59 @@ void main(void)
     vec3 directional_color = vec3(0);
     vec3 point_color = vec3(0);
 
+    vec3 norm = normalize(aNormal);
+    vec3 view_direction = normalize(cameraPos - fragPos);
     for(int i = 0; i<lightCount;++i)
     {
-        vec3 view_direction = cameraPos - fragPos;
+
 
         if(lightType[i] == 0)
         {
             vec3 direction = normalize(lightPosition[i]- fragPos);
 
             //diffuse shading
-            float diff = max(dot(aNormal, direction),0.0);
+            float diff = max(dot(norm, direction),0.0);
 
             //specularo shadoringoru
-            vec3 reflect_dir = reflect(-direction,aNormal);
-            float spec = pow(max(dot(view_direction, reflect_dir),0.0),32.0);
+            //vec3 reflect_dir = reflect(-direction,norm);
+            //float spec = pow(max(dot(view_direction, reflect_dir),0.0),32.0);
+            vec3 half_way = normalize(direction+view_direction);
+            float spec = pow(max(dot(half_way,norm),0.0),32.0);
+
 
             //attenuation (cutre, linear)
             float distance = length(lightPosition[i]-fragPos);
             float attenuation = max(1.0-(distance/lightRange[i]),0.0);
             attenuation = pow(attenuation,2.0);
 
-            //combine
-            vec3 ambient = lightColor[i] * albedo.rgb *texture(albedoTexture,vTexCoords).rgb;
-            //ambient *= attenuation;
-            vec3 diffuse_res =diff * albedo.rgb * texture(albedoTexture,vTexCoords).rgb;
-            //diffuse_res *= attenuation;
-            vec3 specular_res = spec * specular.rgb * texture(specularTexture,vTexCoords).rgb;
+
+            vec3 diffuse_res =lightColor[i] *diff * albedo.rgb * texture(albedoTexture,vTexCoords).rgb;
+            diffuse_res *= attenuation;
+           vec3 specular_res = spec * specular.rgb*lightColor[i]; //texture(specularTexture,vTexCoords).rgb;
+           // vec3 specular_res = vec3(spec);
             //specular_res *= attenuation;
-            point_color += (ambient + diffuse_res + specular_res);
+            point_color +=   ( diffuse_res+ specular_res);
         }
         else if(lightType[i] == 1)
         {
-            vec3 norm = normalize(aNormal);
             vec3 direction = normalize(-lightDirection[i]);
 
             //diffuse shading
             float diff = max(dot(norm, direction),0.0);
 
             //specular shading
-            vec3 reflect_direction = reflect(-direction,norm);
-            float spec = pow(max(dot(view_direction, reflect_direction),0.00001),256.0);
+            //vec3 reflect_direction = reflect(-direction,norm);
+            //float spec = pow(max(dot(view_direction, reflect_direction),0.00001),256.0);
+            vec3 half_way = normalize(direction+view_direction);
+            float spec = pow(max(dot(half_way,norm),0.0),32.0);
 
-            vec3 ambient = lightColor[i] * albedo.rgb * texture(albedoTexture,vTexCoords).rgb;
-            vec3 diffuse_res =diff * albedo.rgb * texture(albedoTexture,vTexCoords).rgb;
+
+            vec3 diffuse_res = lightColor[i]*diff * albedo.rgb * texture(albedoTexture,vTexCoords).rgb;
             vec3 specular_res = spec * specular.rgb * texture(specularTexture,vTexCoords).rgb;
-            directional_color = ambient + diffuse_res /*+ max(vec3(0.0),specular_res)*/;
+            directional_color = (diffuse_res + specular_res);
         }
     }
-    res = directional_color + point_color;
+   vec3 ambient = 0.05 * albedo.rgb * texture(albedoTexture,vTexCoords).rgb;
+    res = directional_color + point_color + ambient;
     outColor=vec4(res,1.0);
 }

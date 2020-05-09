@@ -365,8 +365,7 @@ void DeferredRenderer::passMeshes(Camera *camera)
 
 void DeferredRenderer::passBlit()
 {
-    if(textures.contains(shownTexture()))
-    {
+
         gl->glDisable(GL_DEPTH_TEST);
 
         QOpenGLShaderProgram &program = blitProgram->program;
@@ -401,5 +400,5 @@ void DeferredRenderer::passBlit()
         }
 
         gl->glEnable(GL_DEPTH_TEST);
-    }
+
 }

@@ -89,8 +89,9 @@ void OpenGLWidget::initializeGL()
     gl->glEnable(GL_DEPTH_TEST);
     gl->glDisable(GL_BLEND);
 
-    renderer->initialize();
     def_renderer->initialize();
+    renderer->initialize();
+
 }
 
 void OpenGLWidget::resizeGL(int w, int h)
@@ -107,8 +108,14 @@ void OpenGLWidget::paintGL()
 
     camera->prepareMatrices();
 
-    def_renderer->render(camera);
-    renderer->render(camera);
+    if(def_renderer->getTextures().contains(def_renderer->shownTexture()))
+    {
+        def_renderer->render(camera);
+    }
+    else
+    {
+        renderer->render(camera);
+    }
 
 }
 

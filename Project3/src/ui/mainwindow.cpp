@@ -126,6 +126,7 @@ MainWindow::MainWindow(QWidget *parent) :
     resourcesWidget->updateLayout();
 
     setAcceptDrops(true);
+    openGLWidget->showTextureWithName("Final forward");
 }
 
 MainWindow::~MainWindow()
