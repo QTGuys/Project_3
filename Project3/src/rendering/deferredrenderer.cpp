@@ -81,10 +81,8 @@ void DeferredRenderer::render(Camera *camera)
 
     // Clear color
     gl->glClearDepth(1.0);
-    gl->glClearColor(miscSettings->backgroundColor.redF(),
-                     miscSettings->backgroundColor.greenF(),
-                     miscSettings->backgroundColor.blueF(),
-                     1.0);
+    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Passes
@@ -98,17 +96,26 @@ void DeferredRenderer::render(Camera *camera)
     //---------------------Shading Pass--------------//
 
     fBuffer->bind();
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
+
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
     passLightsToProgram();
 
-    // also send light relevant uniforms
-    resourceManager->quad->submeshes[0]->draw();
     fBuffer->release();
 
     gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glDisable(GL_BLEND);
+    glCullFace(GL_BACK);
 
     //------------------------------------------------//
+
     passBlit();
 }
 
@@ -219,35 +226,56 @@ void DeferredRenderer::passLightsToProgram()
         gl->glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, tMaterial);
 
-         QVector<int> lightType;
-         QVector<QVector3D> lightPosition;
-         QVector<QVector3D> lightDirection;
-         QVector<QVector3D> lightColor;
-         QVector<float>lightRange;
-
          for (auto entity : scene->entities)
          {
              if (entity->active && entity->lightSource != nullptr)
              {
                  auto light = entity->lightSource;
-                 lightType.push_back(int(light->type));
-                 lightPosition.push_back(QVector3D( entity->transform->matrix() * QVector4D(0.0, 0.0, 0.0, 1.0)));
-                 lightDirection.push_back(QVector3D(entity->transform->matrix() * QVector4D(0.0, 1.0, 0.0, 0.0)));
+
+                 program.setUniformValue("lightType", int(light->type));
+                 program.setUniformValue("lightPosition", QVector3D(entity->transform->matrix() * QVector4D(0.0, 0.0, 0.0, 1.0)));
+                 program.setUniformValue("lightDirection", QVector3D(entity->transform->matrix() * QVector4D(0.0, 1.0, 0.0, 0.0)));
                  QVector3D color(light->color.redF(), light->color.greenF(), light->color.blueF());
-                 lightColor.push_back(color * light->intensity);
-                 lightRange.push_back(light->range);
+                 program.setUniformValue("lightColor", color * light->intensity);
+                 program.setUniformValue("lightRange", light->range);
+
+                 QMatrix4x4 scaleMatrix = QMatrix4x4();
+                 QMatrix4x4 worldMatrix = entity->transform->matrix();
+
+                 if(int(light->type)==0)
+                 {
+                    scaleMatrix.scale(light->range/2.0f, light->range/2.0f, light->range/2.0f);
+                    program.setUniformValue("viewMatrix", camera->viewMatrix);
+                    program.setUniformValue("projectionMatrix", camera->projectionMatrix);
+                    program.setUniformValue("worldMatrix", worldMatrix*scaleMatrix);
+
+                 }
+                 else
+                 {
+                     program.setUniformValue("viewMatrix", QMatrix4x4());
+                     program.setUniformValue("projectionMatrix", QMatrix4x4());
+                     program.setUniformValue("worldMatrix", QMatrix4x4());
+                     entity->transform->position=QVector3D(0.0f,0.0f,0.0f);
+                 }
+
+                 program.setUniformValue("camViewPort", camera->viewportWidth,camera->viewportHeight);
+
+                 if(int(light->type)==0)
+                 {
+                    for (auto submesh : resourceManager->sphere->submeshes)
+                    {
+                        submesh->draw();
+                    }
+                 }
+                 else
+                 {
+                     glCullFace(GL_BACK);
+                     resourceManager->quad->submeshes[0]->draw();
+                     glCullFace(GL_FRONT);
+                 }
              }
          }
-         if (lightPosition.size() > 0)
-         {
-             program.setUniformValueArray("lightType", &lightType[0], lightType.size());
-             program.setUniformValueArray("lightPosition", &lightPosition[0], lightPosition.size());
-             program.setUniformValueArray("lightDirection", &lightDirection[0], lightDirection.size());
-             program.setUniformValueArray("lightColor", &lightColor[0], lightColor.size());
-             program.setUniformValueArray("lightRange", &lightRange[0],lightRange.size(),1);
 
-         }
-         program.setUniformValue("lightCount", lightPosition.size());
          program.setUniformValue("viewPos",camera->position);
      }
 }
