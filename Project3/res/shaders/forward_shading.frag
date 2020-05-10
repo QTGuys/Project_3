@@ -42,9 +42,10 @@ void main(void)
 
     vec3 norm = normalize(aNormal);
     vec3 view_direction = normalize(cameraPos - fragPos);
+    vec3 ambient = vec3(0.0);
     for(int i = 0; i<lightCount;++i)
     {
-
+        ambient = 0.05 * albedo.rgb * texture(albedoTexture,vTexCoords).rgb;
 
         if(lightType[i] == 0)
         {
@@ -68,14 +69,14 @@ void main(void)
 
             vec3 diffuse_res =lightColor[i] *diff * albedo.rgb * texture(albedoTexture,vTexCoords).rgb;
             diffuse_res *= attenuation;
-           vec3 specular_res = spec * specular.rgb*lightColor[i]; //texture(specularTexture,vTexCoords).rgb;
-           // vec3 specular_res = vec3(spec);
+            vec3 specular_res = spec * specular.rgb*lightColor[i]; //texture(specularTexture,vTexCoords).rgb;
+            // vec3 specular_res = vec3(spec);
             specular_res *= attenuation;
             point_color +=   ( diffuse_res+ specular_res);
         }
-        else if(lightType[i] == 1)
+        else
         {
-            vec3 direction = normalize(-lightDirection[i]);
+            vec3 direction = normalize(lightDirection[i]);
 
             //diffuse shading
             float diff = max(dot(norm, direction),0.0);
@@ -91,7 +92,7 @@ void main(void)
             directional_color = (diffuse_res + specular_res);
         }
     }
-    vec3 ambient = 0.05 * albedo.rgb * texture(albedoTexture,vTexCoords).rgb;
+
     res = directional_color + point_color + ambient;
     outColor=vec4(res,1.0);
 }

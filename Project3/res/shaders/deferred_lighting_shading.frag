@@ -37,28 +37,23 @@ void main(void)
         float diff = max(dot(norm, direction),0.0);
 
         //specularo shadoringoru
-        //vec3 reflect_dir = reflect(-direction,norm);
-        //float spec = pow(max(dot(view_direction, reflect_dir),0.0),32.0);
         vec3 half_way = normalize(direction+view_direction);
         float spec = pow(max(dot(half_way,norm),0.0),32.0);
-
 
         //attenuation (cutre, linear)
         float distance = length(lightPosition-fragPos);
         float attenuation = max(1.0-(distance/lightRange),0.0);
         attenuation = pow(attenuation,2.0);
 
-
         vec3 diffuse_res =lightColor *diff * albedo;
         diffuse_res *= attenuation;
-        vec3 specular_res = spec * lightColor; //texture(specularTexture,vTexCoords).rgb;
-       // vec3 specular_res = vec3(spec);
+        vec3 specular_res = spec * lightColor;
         specular_res *= attenuation;
-        final_color =  ( diffuse_res + specular_res);
+        final_color =  ( diffuse_res + specular_res)+(0.05 * albedo);
     }
     else
     {
-        vec3 direction = normalize(-lightDirection);
+        vec3 direction = normalize(lightDirection);
 
         //diffuse shading
         float diff = max(dot(norm, direction),0.0);
@@ -69,10 +64,9 @@ void main(void)
 
         vec3 diffuse_res = lightColor*diff * albedo;
         vec3 specular_res = spec * lightColor * albedo;
-        final_color = (diffuse_res + specular_res);
+        final_color = (diffuse_res + specular_res)+(0.05 * albedo);
     }
 
-    vec3 ambient = 0.05 * albedo;
-    res = final_color + ambient ;
+    res = final_color;
     FragColor=vec4(res,1.0);
 }
