@@ -1,5 +1,7 @@
 #include "entity.h"
 #include "globals.h"
+#include <QRandomGenerator64>
+#include <time.h>
 
 Entity::Entity() :
     name("Entity")
@@ -7,6 +9,9 @@ Entity::Entity() :
     for (int i = 0; i < MAX_COMPONENTS; ++i)
         components[i] = nullptr;
     transform = new Transform;
+    QRandomGenerator generator = QRandomGenerator64();
+    generator.seed(time(NULL));
+    selection_code = generator.generateDouble();
 }
 
 Entity::~Entity()

@@ -423,7 +423,7 @@ void DeferredRenderer::passBlit()
             }
             else if(shownTexture() == "Depth")
             {
-                 gl->glBindTexture(GL_TEXTURE_2D, tDepth);
+                 gl->glBindTexture(GL_TEXTURE_2D, interaction->selection_texture);
             }
             else if(shownTexture() == "Final Deferred")
             {

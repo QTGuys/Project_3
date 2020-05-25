@@ -23,6 +23,8 @@ public:
 
     QString name;
 
+    double selection_code = 0;
+
     union
     {
         struct

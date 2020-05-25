@@ -3,7 +3,23 @@
 #include "resources/mesh.h"
 #include <QtMath>
 #include <QVector2D>
+#include <QOpenGLShaderProgram>
+#include "rendering/framebufferobject.h"
+#include "rendering/gl.h"
+#include "resources/shaderprogram.h"
 
+
+void Interaction::initialize()
+{
+    selection_fbo = new FramebufferObject();
+    selection_fbo->create();
+
+   selection_shader = resourceManager->createShaderProgram();
+   selection_shader->name = "Selection shading";
+   selection_shader->vertexShaderFilename = "res/shaders/selection_shading.vert";
+   selection_shader->fragmentShaderFilename = "res/shaders/selection_shading.frag";
+   selection_shader->includeForSerialization = false;
+}
 
 bool Interaction::update()
 {
@@ -36,6 +52,9 @@ bool Interaction::idle()
     else if (input->mouseButtons[Qt::LeftButton] == MouseButtonState::Press)
     {
         // TODO: Left click
+        want_to_mousepick = true;
+        //RenderSelection();
+        //SelectFromRender();
     }
     else if(selection->count > 0)
     {
@@ -184,7 +203,134 @@ bool Interaction::focus()
     return true;
 }
 
+void Interaction::RenderSelection()
+{
+    OpenGLErrorGuard guard("Interatcion::RenderSelection()");
+    selection_fbo->bind();
+
+    // Clear color
+    gl->glClearDepth(1.0);
+    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Passes
+    QOpenGLShaderProgram &program = selection_shader->program;
+
+    if (program.bind())
+    {
+        program.setUniformValue("viewMatrix", camera->viewMatrix);
+        program.setUniformValue("projectionMatrix", camera->projectionMatrix);
+
+        QVector<MeshRenderer*> meshRenderers;
+        QVector<LightSource*> lightSources;
+
+        // Get components
+        for (auto entity : scene->entities)
+        {
+            if (entity->active)
+            {
+                if (entity->meshRenderer != nullptr) { meshRenderers.push_back(entity->meshRenderer); }
+                if (entity->lightSource != nullptr) { lightSources.push_back(entity->lightSource); }
+            }
+        }
+
+        // Meshes
+        for (auto meshRenderer : meshRenderers)
+        {
+            auto mesh = meshRenderer->mesh;
+
+            if (mesh != nullptr)
+            {
+                QMatrix4x4 worldMatrix = meshRenderer->entity->transform->matrix();
+                QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix;
+
+                program.setUniformValue("worldViewMatrix", worldViewMatrix);
+                float test = (float)meshRenderer->entity->selection_code;
+                program.setUniformValue("SelectionCode",(float)meshRenderer->entity->selection_code);
+                for (auto submesh : mesh->submeshes)
+                {
+                    submesh->draw();
+                }
+            }
+        }
+
+        // Light spheres
+        if (miscSettings->renderLightSources)
+        {
+            for (auto lightSource : lightSources)
+            {
+                QMatrix4x4 worldMatrix = lightSource->entity->transform->matrix();
+                QMatrix4x4 scaleMatrix; scaleMatrix.scale(0.1f, 0.1f, 0.1f);
+                QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix * scaleMatrix;
+
+                program.setUniformValue("worldViewMatrix", worldViewMatrix);
+                program.setUniformValue("SelectionColor",(float)lightSource->entity->selection_code);
+
+                for (auto submesh : resourceManager->sphere->submeshes)
+                {
+                    submesh->draw();
+                }
+            }
+        }
+
+        program.release();
+    }
+
+    selection_fbo->release();
+}
+
+void Interaction::SelectFromRender()
+{
+     selection_fbo->bind();
+    //printf("x: %i y: %i",input->mousex, input->mousey);
+    GLfloat* pixels = (GLfloat*)malloc(sizeof(GLfloat)*3);
+    glReadPixels(input->mousex, camera->viewportHeight-input->mousey,1,1,GL_RGB,GL_FLOAT,pixels);
+    printf("%f\n",pixels[0]);
+    selection_fbo->release();
+
+    for(auto item:scene->entities)
+     {
+        float sub = qAbs(item->selection_code - pixels[0]);
+        printf("%f",sub);
+        if( sub < 0.01)
+        {
+            emit selection->entitySelected(item);
+        }
+    }
+}
+
 void Interaction::postUpdate()
 {
     state = nextState;
+}
+
+void Interaction::resize(int w, int h)
+{
+    OpenGLErrorGuard guard("Interaction::resize()");
+
+    gl->glGenTextures(1, &selection_texture);
+    gl->glBindTexture(GL_TEXTURE_2D, selection_texture);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, w, h, 0, GL_RGB, GL_FLOAT, nullptr);
+
+    if (selection_depth == 0) gl->glDeleteTextures(1, &selection_depth);
+    gl->glGenTextures(1, &selection_depth);
+    gl->glBindTexture(GL_TEXTURE_2D, selection_depth);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+    selection_fbo->bind();
+    selection_fbo->addColorAttachment(0, selection_texture);
+    selection_fbo->addDepthAttachment(selection_depth);
+    selection_fbo->checkStatus();
+    selection_fbo->release();
 }

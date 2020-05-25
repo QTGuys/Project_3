@@ -133,6 +133,7 @@ void ForwardRenderer::resize(int w, int h)
 
 void ForwardRenderer::render(Camera *camera)
 {
+
     OpenGLErrorGuard guard("ForwardRenderer::render()");
 
     fbo->bind();

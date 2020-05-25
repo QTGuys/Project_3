@@ -91,7 +91,7 @@ void OpenGLWidget::initializeGL()
 
     def_renderer->initialize();
     renderer->initialize();
-
+    interaction->initialize();
 }
 
 void OpenGLWidget::resizeGL(int w, int h)
@@ -100,6 +100,7 @@ void OpenGLWidget::resizeGL(int w, int h)
     camera->viewportHeight = h;
     renderer->resize(w, h);
     def_renderer->resize(w,h);
+    interaction->resize(w,h);
 }
 
 void OpenGLWidget::paintGL()
@@ -115,6 +116,12 @@ void OpenGLWidget::paintGL()
     else
     {
         renderer->render(camera);
+    }
+    if(interaction->want_to_mousepick)
+    {
+        interaction->want_to_mousepick = false;
+        interaction->RenderSelection();
+        interaction->SelectFromRender();
     }
 
 }

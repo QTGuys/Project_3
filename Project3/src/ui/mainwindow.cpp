@@ -346,6 +346,7 @@ void MainWindow::onEntitySelectedFromHierarchy(Entity *entity)
 void MainWindow::onEntitySelectedFromSceneView(Entity *entity)
 {
     inspectorWidget->showEntity(entity);
+//    hierarchyWidget->set
     openGLWidget->update();
 }
 
