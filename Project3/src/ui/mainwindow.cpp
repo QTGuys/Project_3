@@ -23,6 +23,7 @@
 #include <QComboBox>
 #include <QDockWidget>
 #include <QVBoxLayout>
+#include "ui_hierarchywidget.h"
 
 
 MainWindow *g_MainWindow = nullptr;
@@ -121,6 +122,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(miscSettingsWidget, SIGNAL(settingsChanged()), this, SLOT(updateRender()));
 
     connect(selection, SIGNAL(entitySelected(Entity *)), this, SLOT(onEntitySelectedFromSceneView(Entity *)));
+    connect(selection, SIGNAL(onClick()),this,SLOT(updateRender()));
 
     hierarchyWidget->updateLayout();
     resourcesWidget->updateLayout();
@@ -346,8 +348,9 @@ void MainWindow::onEntitySelectedFromHierarchy(Entity *entity)
 void MainWindow::onEntitySelectedFromSceneView(Entity *entity)
 {
     inspectorWidget->showEntity(entity);
-//    hierarchyWidget->set
+    hierarchyWidget->ui->listWidget->setCurrentRow(scene->IndexFromEntity(entity));
     openGLWidget->update();
+    updateEverything();
 }
 
 void MainWindow::onEntityChangedFromInspector(Entity * /*entity*/)

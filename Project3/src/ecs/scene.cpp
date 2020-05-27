@@ -26,6 +26,16 @@ int Scene::numEntities() const
     return entities.size();
 }
 
+int Scene::IndexFromEntity(Entity* entity)
+{
+    for(int i =0; i<entities.size();++i)
+    {
+        if(entities[i]==entity)
+            return i;
+    }
+    return -1;
+}
+
 Entity *Scene::addEntity()
 {
     Entity *entity = new Entity;

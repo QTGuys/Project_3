@@ -32,7 +32,7 @@ public slots:
     void removeEntity();
     void onItemClicked(QListWidgetItem *);
 
-private:
+public:
     Ui::HierarchyWidget *ui;
 };
 

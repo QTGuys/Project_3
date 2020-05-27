@@ -53,6 +53,8 @@ bool Interaction::idle()
     {
         // TODO: Left click
         want_to_mousepick = true;
+        emit selection->onClick();
+
         //RenderSelection();
         //SelectFromRender();
     }
@@ -282,20 +284,19 @@ void Interaction::RenderSelection()
 
 void Interaction::SelectFromRender()
 {
-     selection_fbo->bind();
-    //printf("x: %i y: %i",input->mousex, input->mousey);
+    selection_fbo->bind();
+
     GLfloat* pixels = (GLfloat*)malloc(sizeof(GLfloat)*3);
     glReadPixels(input->mousex, camera->viewportHeight-input->mousey,1,1,GL_RGB,GL_FLOAT,pixels);
-    printf("%f\n",pixels[0]);
     selection_fbo->release();
 
     for(auto item:scene->entities)
-     {
+    {
         float sub = qAbs(item->selection_code - pixels[0]);
-        printf("%f",sub);
+
         if( sub < 0.01)
         {
-            emit selection->entitySelected(item);
+            selection->select(item);
         }
     }
 }
