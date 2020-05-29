@@ -22,6 +22,7 @@ public:
     QVector3D screenPointToWorldRay(int x, int y);
     QVector3D screenDisplacementToWorldVector(int x0, int y0, int x1, int y1, const QVector3D &worldPoint);
     QVector2D worldToScreenPoint(const QVector3D &p);
+    void LookAt(QVector3D point);
 
     // Create the matrices
     void prepareMatrices();

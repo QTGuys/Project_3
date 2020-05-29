@@ -74,3 +74,30 @@ void Camera::prepareMatrices()
     projectionMatrix.setToIdentity();
     projectionMatrix.perspective(fovy, float(viewportWidth) / viewportHeight, znear, zfar);
 }
+
+void Camera::LookAt(QVector3D point)
+{
+    QVector4D camFront= worldMatrix*QVector4D(0.0, 0.0, -1.0, 0.0);
+    QVector4D camRight = worldMatrix*QVector4D(1.0, 0.0, 0.0,0.0);
+    QVector4D camUp = worldMatrix*QVector4D(0.0,1.0,0.0,0.0);
+
+    QVector3D f = point - position;
+    QVector4D newFront = QVector4D(f,0.0);
+    newFront.normalize();
+
+    //New Right vector
+    QVector4D newRight = QVector4D(QVector3D::crossProduct(newFront.toVector3D(),camUp.toVector3D()),0.0);
+
+    //New up vector
+    QVector4D newUp=QVector4D(QVector3D::crossProduct(newRight.toVector3D(),newFront.toVector3D()),0.0);
+
+    yaw+=qRadiansToDegrees(qAcos(QVector4D::dotProduct(newRight,camRight)/(newRight.length()*camRight.length())));
+    pitch+=qRadiansToDegrees(qAcos(QVector4D::dotProduct(newUp,camUp)/(newUp.length()*camUp.length())));
+
+    if (yaw < 0.0f) yaw += 360.0f;
+    if (yaw > 360.0f) yaw -= 360.0f;
+    if (pitch > 89.0f) pitch = 89.0f;
+    if (pitch < -89.0f) pitch = -89.0f;
+}
+
+

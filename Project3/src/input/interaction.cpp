@@ -35,6 +35,10 @@ bool Interaction::update()
         changed = navigate();
         break;
 
+    case State::Orbit:
+        changed = orbit();
+        break;
+
     case State::Focusing:
         changed = focus();
         break;
@@ -47,7 +51,10 @@ bool Interaction::idle()
 {
     if (input->mouseButtons[Qt::RightButton] == MouseButtonState::Pressed)
     {
-        nextState = State::Navigating;
+        if(selection->count>0)
+            nextState=State::Orbit;
+        else
+            nextState = State::Navigating;
     }
     else if (input->mouseButtons[Qt::LeftButton] == MouseButtonState::Press)
     {
@@ -190,6 +197,19 @@ bool Interaction::navigate()
     return true;
 }
 
+bool Interaction::orbit()
+{
+    Entity* entity = selection->entities[0];
+
+    if(entity)
+    {
+        camera->LookAt(entity->transform->position);
+    }
+
+    nextState = State::Idle;
+    return true;
+}
+
 bool Interaction::focus()
 {
     static bool idle = true;
@@ -316,6 +336,8 @@ void Interaction::SelectFromRender()
     GLfloat* pixels = (GLfloat*)malloc(sizeof(GLfloat)*3);
     glReadPixels(input->mousex, camera->viewportHeight-input->mousey,1,1,GL_RGB,GL_FLOAT,pixels);
     selection_fbo->release();
+
+    selection->select(nullptr);
 
     for(auto item:scene->entities)
     {

@@ -31,8 +31,9 @@ private:
     bool idle();
     bool navigate();
     bool focus();
+    bool orbit();
 
-    enum State { Idle, Navigating, Focusing };
+    enum State { Idle, Navigating, Focusing, Orbit };
     State state = State::Idle;
     State nextState = State::Idle;
 
