@@ -31,6 +31,7 @@ public:
     void write(QJsonObject &json);
 
     QVector<Entity*> entities;
+    Entity* selectedEntity = nullptr;
 };
 
 

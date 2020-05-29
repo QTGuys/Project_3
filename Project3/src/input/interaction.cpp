@@ -54,9 +54,6 @@ bool Interaction::idle()
         // TODO: Left click
         want_to_mousepick = true;
         emit selection->onClick();
-
-        //RenderSelection();
-        //SelectFromRender();
     }
     else if(selection->count > 0)
     {
@@ -144,6 +141,36 @@ bool Interaction::navigate()
         speedVector += QVector3D(cosf(qDegreesToRadians(yaw)),
                                         0.0f,
                                         -sinf(qDegreesToRadians(yaw))) * a * t;
+    }
+    if (input->keys[Qt::Key_Q] == KeyState::Pressed) // Up
+    {
+        accelerating = true;
+        QVector3D front=QVector3D(-sinf(qDegreesToRadians(yaw)) * cosf(qDegreesToRadians(pitch)),
+                                  sinf(qDegreesToRadians(pitch)),
+                                  -cosf(qDegreesToRadians(yaw)) * cosf(qDegreesToRadians(pitch)));
+
+        QVector3D right = QVector3D(cosf(qDegreesToRadians(yaw)),
+                                    0.0f,
+                                    -sinf(qDegreesToRadians(yaw)));
+
+        QVector3D up = QVector3D::crossProduct(right,front)*a*t;
+
+        speedVector -= up;
+    }
+    if (input->keys[Qt::Key_E] == KeyState::Pressed) // Down
+    {
+        accelerating = true;
+        QVector3D front=QVector3D(-sinf(qDegreesToRadians(yaw)) * cosf(qDegreesToRadians(pitch)),
+                                  sinf(qDegreesToRadians(pitch)),
+                                  -cosf(qDegreesToRadians(yaw)) * cosf(qDegreesToRadians(pitch)));
+
+        QVector3D right = QVector3D(cosf(qDegreesToRadians(yaw)),
+                                    0.0f,
+                                    -sinf(qDegreesToRadians(yaw)));
+
+        QVector3D up = QVector3D::crossProduct(right,front)*a*t;
+
+        speedVector += up;
     }
 
     if (!accelerating) {
