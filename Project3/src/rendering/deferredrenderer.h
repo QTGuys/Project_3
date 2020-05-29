@@ -27,6 +27,7 @@ public:
 private:
     void passLightsToProgram();
     void passMeshes(Camera* camera);
+    void passBackground(Camera* camera);
 
 public:
 
@@ -37,6 +38,7 @@ public:
     uint tNormal = 0;
     uint tMaterial = 0;
     uint tDepth = 0;
+    uint tBackground = 0;
 
    uint fboColor = 0;
    uint fboDepth = 0;
@@ -45,6 +47,7 @@ private:
     ShaderProgram *deferredShading = nullptr;
     ShaderProgram* deferredLightingShading = nullptr;
     ShaderProgram *blitProgram = nullptr;
+    ShaderProgram* backgroundProgram = nullptr;
 
 };
 

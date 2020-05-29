@@ -110,6 +110,8 @@ RESOURCES += \
     res/resources.qrc
 
 DISTFILES += \
+    res/shaders/background_shading.frag \
+    res/shaders/background_shading.vert \
     res/shaders/blit.frag \
     res/shaders/blit.vert \
     res/shaders/deferred_lighting_shading.frag \

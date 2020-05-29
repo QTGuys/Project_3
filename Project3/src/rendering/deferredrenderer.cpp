@@ -58,6 +58,13 @@ void DeferredRenderer::initialize()
     deferredLightingShading->fragmentShaderFilename = "res/shaders/deferred_lighting_shading.frag";
     deferredLightingShading->includeForSerialization = false;
 
+    backgroundProgram = resourceManager->createShaderProgram();
+    backgroundProgram->name = "Background shading";
+    backgroundProgram->vertexShaderFilename = "res/shaders/background_shading.vert";
+    backgroundProgram->fragmentShaderFilename = "res/shaders/background_shading.frag";
+    backgroundProgram->includeForSerialization = false;
+
+
 }
 
 void DeferredRenderer::finalize()
@@ -92,7 +99,12 @@ void DeferredRenderer::render(Camera *camera)
 
     gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     //----------------------------------------------------//
+//    gl->glClearDepth(1.0);
+//    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+//    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+//    passBackground(camera);
+//      gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     //---------------------Shading Pass--------------//
 
     fBuffer->bind();
@@ -392,6 +404,37 @@ void DeferredRenderer::passMeshes(Camera *camera)
                 }
             }
         }
+
+        program.release();
+    }
+}
+
+void DeferredRenderer::passBackground(Camera *camera)
+{
+    GLenum drawBuffers[] = {GL_COLOR_ATTACHMENT3};
+    gl->glDrawBuffers(1,drawBuffers);
+
+    OpenGLState glState;
+    glState.depthTest = true;
+    glState.depthFunc = GL_LEQUAL;
+    glState.apply();
+
+    QOpenGLShaderProgram &program = backgroundProgram->program;
+
+    if(program.bind())
+    {
+        QVector4D viewportParams = camera->getLeftRightBottomTop();
+        program.setUniformValue("viewportSize",QVector2D(camera->viewportWidth,camera->viewportHeight));
+        program.setUniformValue("left",viewportParams.x());
+        program.setUniformValue("right",viewportParams.y());
+        program.setUniformValue("bottom",viewportParams.z());
+        program.setUniformValue("top",viewportParams.w());
+        program.setUniformValue("znear",camera->znear);
+        program.setUniformValue("worldMatrix",camera->worldMatrix);
+
+        program.setUniformValue("backgroundColor", scene->backgroundColor);
+
+        resourceManager->quad->submeshes[0]->draw();
 
         program.release();
     }

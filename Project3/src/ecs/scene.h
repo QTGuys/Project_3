@@ -30,6 +30,7 @@ public:
     void write(QJsonObject &json);
 
     QVector<Entity*> entities;
+    QVector4D backgroundColor;
 };
 
 

@@ -11,6 +11,7 @@
 
 Scene::Scene()
 {
+    backgroundColor= QVector4D(0.0,1.0,0.0,0.0);
 }
 
 Scene::~Scene()
