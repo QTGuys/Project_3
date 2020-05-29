@@ -16,6 +16,7 @@ public:
     ~Scene();
 
     int numEntities() const;
+    int IndexFromEntity(Entity* entity);
     Entity *addEntity();
     Entity *entityAt(int index);
     void removeEntityAt(int index);
@@ -31,6 +32,7 @@ public:
 
     QVector<Entity*> entities;
     QVector4D backgroundColor;
+    Entity* selectedEntity = nullptr;
 };
 
 

@@ -53,8 +53,7 @@ bool Interaction::idle()
     {
         // TODO: Left click
         want_to_mousepick = true;
-        //RenderSelection();
-        //SelectFromRender();
+        emit selection->onClick();
     }
     else if(selection->count > 0)
     {
@@ -142,6 +141,36 @@ bool Interaction::navigate()
         speedVector += QVector3D(cosf(qDegreesToRadians(yaw)),
                                         0.0f,
                                         -sinf(qDegreesToRadians(yaw))) * a * t;
+    }
+    if (input->keys[Qt::Key_Q] == KeyState::Pressed) // Up
+    {
+        accelerating = true;
+        QVector3D front=QVector3D(-sinf(qDegreesToRadians(yaw)) * cosf(qDegreesToRadians(pitch)),
+                                  sinf(qDegreesToRadians(pitch)),
+                                  -cosf(qDegreesToRadians(yaw)) * cosf(qDegreesToRadians(pitch)));
+
+        QVector3D right = QVector3D(cosf(qDegreesToRadians(yaw)),
+                                    0.0f,
+                                    -sinf(qDegreesToRadians(yaw)));
+
+        QVector3D up = QVector3D::crossProduct(right,front)*a*t;
+
+        speedVector -= up;
+    }
+    if (input->keys[Qt::Key_E] == KeyState::Pressed) // Down
+    {
+        accelerating = true;
+        QVector3D front=QVector3D(-sinf(qDegreesToRadians(yaw)) * cosf(qDegreesToRadians(pitch)),
+                                  sinf(qDegreesToRadians(pitch)),
+                                  -cosf(qDegreesToRadians(yaw)) * cosf(qDegreesToRadians(pitch)));
+
+        QVector3D right = QVector3D(cosf(qDegreesToRadians(yaw)),
+                                    0.0f,
+                                    -sinf(qDegreesToRadians(yaw)));
+
+        QVector3D up = QVector3D::crossProduct(right,front)*a*t;
+
+        speedVector += up;
     }
 
     if (!accelerating) {
@@ -282,20 +311,19 @@ void Interaction::RenderSelection()
 
 void Interaction::SelectFromRender()
 {
-     selection_fbo->bind();
-    //printf("x: %i y: %i",input->mousex, input->mousey);
+    selection_fbo->bind();
+
     GLfloat* pixels = (GLfloat*)malloc(sizeof(GLfloat)*3);
     glReadPixels(input->mousex, camera->viewportHeight-input->mousey,1,1,GL_RGB,GL_FLOAT,pixels);
-    printf("%f\n",pixels[0]);
     selection_fbo->release();
 
     for(auto item:scene->entities)
-     {
+    {
         float sub = qAbs(item->selection_code - pixels[0]);
-        printf("%f",sub);
+
         if( sub < 0.01)
         {
-            emit selection->entitySelected(item);
+            selection->select(item);
         }
     }
 }

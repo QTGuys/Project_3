@@ -23,6 +23,7 @@ public:
 signals:
 
     void entitySelected(Entity *);
+    void onClick();
 
 public slots:
 
