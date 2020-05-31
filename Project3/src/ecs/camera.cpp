@@ -87,12 +87,32 @@ void Camera::LookAt(QVector3D point)
 
     //New Right vector
     QVector4D newRight = QVector4D(QVector3D::crossProduct(newFront.toVector3D(),camUp.toVector3D()),0.0);
+    newRight.normalize();
 
     //New up vector
     QVector4D newUp=QVector4D(QVector3D::crossProduct(newRight.toVector3D(),newFront.toVector3D()),0.0);
+    newUp.normalize();
 
-    yaw+=qRadiansToDegrees(qAcos(QVector4D::dotProduct(newRight,camRight)/(newRight.length()*camRight.length())));
-    pitch+=qRadiansToDegrees(qAcos(QVector4D::dotProduct(newUp,camUp)/(newUp.length()*camUp.length())));
+    float rightDiff = qRadiansToDegrees(qAcos(QVector4D::dotProduct(newRight,camRight)));
+    float upDiff = qRadiansToDegrees(qAcos(QVector4D::dotProduct(newUp,camUp)));
+
+    QVector3D crossYaw = QVector3D::crossProduct(newRight.toVector3D(),camRight.toVector3D());
+    crossYaw.normalize();
+    QVector3D crossPitch = QVector3D::crossProduct(newUp.toVector3D(),camUp.toVector3D());
+    crossPitch.normalize();
+
+    if(QVector3D::dotProduct(QVector3D(0.0,1.0,0.0),crossYaw)<0.0)
+    {
+        rightDiff=-rightDiff;
+    }
+
+    if(QVector3D::dotProduct(crossPitch,QVector3D(1.0,0.0,0.0))<0.0)
+    {
+        upDiff=-upDiff;
+    }
+
+    yaw-=rightDiff;
+    pitch-=upDiff;
 
     if (yaw < 0.0f) yaw += 360.0f;
     if (yaw > 360.0f) yaw -= 360.0f;
