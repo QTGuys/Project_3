@@ -88,28 +88,29 @@ void DeferredRenderer::render(Camera *camera)
 
     // Clear color
     gl->glClearDepth(1.0);
-    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    gl->glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Passes
     passMeshes(camera);
+    passBackground(camera);
 
     gBuffer->release();
 
-    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    //----------------------------------------------------//
+//    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+//    //----------------------------------------------------//
 //    gl->glClearDepth(1.0);
 //    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-//    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+//    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 //    passBackground(camera);
 //      gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     //---------------------Shading Pass--------------//
 
     fBuffer->bind();
 
-    glDisable(GL_DEPTH_TEST);
+   // glDisable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
 
@@ -122,8 +123,8 @@ void DeferredRenderer::render(Camera *camera)
 
     fBuffer->release();
 
-    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glDisable(GL_BLEND);
+    gl->glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    //glDisable(GL_BLEND);
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
 
@@ -131,7 +132,7 @@ void DeferredRenderer::render(Camera *camera)
     //------------------------------------------------//
 
     passBlit();
-
+    glDisable(GL_BLEND);
 
 }
 
@@ -176,8 +177,17 @@ void DeferredRenderer::CreateBuffers(int width, int height)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     gBuffer->addDepthAttachment(tDepth,0);
 
-    uint attachments[3]={GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2};
-    gl->glDrawBuffers(3,attachments);
+    glGenTextures(1,&tBackground);
+    glBindTexture(GL_TEXTURE_2D,tBackground);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,NULL);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gBuffer->addColorAttachment(3,tBackground,0);
+
+    uint attachments[4]={GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3};
+    gl->glDrawBuffers(4,attachments);
 
     gBuffer->checkStatus();
     gBuffer->release();
@@ -242,6 +252,10 @@ void DeferredRenderer::passLightsToProgram()
         gl->glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, tMaterial);
 
+        program.setUniformValue("gBackground",3);
+        gl->glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, tBackground);
+
         program.setUniformValue("viewPos",camera->position);
         program.setUniformValue("camViewPort", camera->viewportWidth,camera->viewportHeight);
 
@@ -254,7 +268,7 @@ void DeferredRenderer::passLightsToProgram()
                  program.setUniformValue("lightType", int(light->type));
                  program.setUniformValue("lightPosition", QVector3D(entity->transform->matrix() * QVector4D(0.0, 0.0, 0.0, 1.0)));
                  program.setUniformValue("lightDirection", QVector3D(entity->transform->matrix() * QVector4D(0.0, 1.0, 0.0, 0.0)));
-                 QVector3D test = QVector3D(entity->transform->matrix() * QVector4D(0.0, 1.0, 0.0, 0.0));
+
                  QVector3D color(light->color.redF(), light->color.greenF(), light->color.blueF());
                  program.setUniformValue("lightColor", color * light->intensity);
                  program.setUniformValue("lightRange", light->range);
@@ -411,8 +425,8 @@ void DeferredRenderer::passMeshes(Camera *camera)
 
 void DeferredRenderer::passBackground(Camera *camera)
 {
-    GLenum drawBuffers[] = {GL_COLOR_ATTACHMENT3};
-    gl->glDrawBuffers(1,drawBuffers);
+    //GLenum drawBuffers[] = {GL_COLOR_ATTACHMENT3};
+    //gl->glDrawBuffers(1,drawBuffers);
 
     OpenGLState glState;
     glState.depthTest = true;
@@ -436,6 +450,7 @@ void DeferredRenderer::passBackground(Camera *camera)
 
         resourceManager->quad->submeshes[0]->draw();
 
+
         program.release();
     }
 }
@@ -443,7 +458,7 @@ void DeferredRenderer::passBackground(Camera *camera)
 void DeferredRenderer::passBlit()
 {
 
-        gl->glDisable(GL_DEPTH_TEST);
+       // gl->glDisable(GL_DEPTH_TEST);
 
         QOpenGLShaderProgram &program = blitProgram->program;
 
@@ -466,10 +481,12 @@ void DeferredRenderer::passBlit()
             }
             else if(shownTexture() == "Depth")
             {
-                 gl->glBindTexture(GL_TEXTURE_2D, interaction->selection_texture);
+                 gl->glBindTexture(GL_TEXTURE_2D, tBackground);
             }
             else if(shownTexture() == "Final Deferred")
             {
+                 gl->glBindTexture(GL_TEXTURE_2D, tBackground);
+                resourceManager->quad->submeshes[0]->draw();
                 gl->glBindTexture(GL_TEXTURE_2D, fboColor);
             }
 

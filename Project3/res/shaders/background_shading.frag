@@ -1,4 +1,6 @@
 #version 330 core
+
+layout (location = 3) out vec4 final_color;
 uniform vec2 viewportSize;
 uniform float left;
 uniform float right;
@@ -26,7 +28,6 @@ void main()
     vec3 horizonColor = horizonFactor*bgColor;
     vec3 groundColor = groundFactor * vec3(bgIntensity)*0.2;
     vec3 skyColor = skyFactor * bgColor*0.7;
-    outColor.rgb = groundColor + skyColor+ horizonColor;
-    outColor.a = 1.0;
-
+    final_color.rgb = groundColor + skyColor+ horizonColor;
+    final_color.a = 1.0;
 }
