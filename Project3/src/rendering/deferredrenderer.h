@@ -41,7 +41,6 @@ public:
     uint tBackground = 0;
 
    uint fboColor = 0;
-   uint fboDepth = 0;
 
 private:
     ShaderProgram *deferredShading = nullptr;

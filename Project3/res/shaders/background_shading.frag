@@ -28,6 +28,7 @@ void main()
     vec3 horizonColor = horizonFactor*bgColor;
     vec3 groundColor = groundFactor * vec3(bgIntensity)*0.2;
     vec3 skyColor = skyFactor * bgColor*0.7;
-    final_color.rgb = groundColor + skyColor+ horizonColor;
-    final_color.a = 1.0;
+    outColor.rgb = groundColor + skyColor+ horizonColor;
+    outColor.a = 1.0;
+    gl_FragDepth = 1.0;
 }

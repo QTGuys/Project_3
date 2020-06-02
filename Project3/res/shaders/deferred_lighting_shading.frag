@@ -25,7 +25,10 @@ void main(void)
     // retrieve data from G-buffer
     vec3 fragPos = texture(gPosition, TexCoords).rgb;
     vec3 norm = texture(gNormal, TexCoords).rgb;//*2-vec3(1.0);
-   // norm = normalize(norm);
+//    if(length(norm) == 0.0)
+//    {
+//        discard;
+//    }
 
     vec3 albedo = texture(gAlbedoSpec, TexCoords).rgb;
 
@@ -69,6 +72,7 @@ void main(void)
         vec3 specular_res = spec * lightColor;
         final_color = (diffuse_res + specular_res)+(0.05 * albedo);
     }
+
 
     res = final_color;
     FragColor=vec4(res,1.0);

@@ -87,46 +87,64 @@ void DeferredRenderer::render(Camera *camera)
     gBuffer->bind();
 
     // Clear color
-    gl->glClearDepth(1.0);
-    gl->glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    //gl->glClearDepth(1.0);
+   // gl->glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Passes
     passMeshes(camera);
-    passBackground(camera);
+
 
     gBuffer->release();
 
-//    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-//    //----------------------------------------------------//
-//    gl->glClearDepth(1.0);
-//    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-//    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//    passBackground(camera);
-//      gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    //----------------------------------------------------//
+
     //---------------------Shading Pass--------------//
 
     fBuffer->bind();
+     gl->glClear(GL_COLOR_BUFFER_BIT);
 
-   // glDisable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
+    //Lightning
+    //depth mask deactivated
+    //blending active and additive
+    //culling deactivated for directional and depth activated
+    //culling backface for point and depth deactivated
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE);
+     glDepthMask(false);
+     glEnable(GL_DEPTH_TEST);
+     glEnable(GL_BLEND);
+     glBlendFunc(GL_ONE, GL_ONE);
+     passLightsToProgram();
 
-    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    passLightsToProgram();
+    //Background and grid
+    //depth test deactivated
+    //blending active with transparency (glsrc alpha,gl_one minus src alpha)
+    //culling deactivated
+    glDepthMask(true);
+    //glDisable(GL_DEPTH_TEST);
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_CULL_FACE);
+    passBackground(camera);
 
     fBuffer->release();
+    //glEnable(GL_CULL_FACE);
 
-    gl->glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    //glDisable(GL_BLEND);
-    glCullFace(GL_BACK);
-    glEnable(GL_DEPTH_TEST);
+//   // glDisable(GL_DEPTH_TEST);
+//    glEnable(GL_CULL_FACE);
+//    glCullFace(GL_FRONT);
+
+//    glCullFace(GL_BACK);
+//    glDepthMask(true);
+//   passBackground(camera);
+
+
+//    gl->glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+//    //glDisable(GL_BLEND);
+//    glCullFace(GL_FRONT);
+
 
 
     //------------------------------------------------//
@@ -203,21 +221,11 @@ void DeferredRenderer::CreateBuffers(int width, int height)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
-    gl->glGenTextures(1, &fboDepth);
-    gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-
-
     // Attach textures to the fbo
 
     fBuffer->bind();
     fBuffer->addColorAttachment(0, fboColor);
-    fBuffer->addDepthAttachment(fboDepth);
+    fBuffer->addDepthAttachment(tDepth,0);
     fBuffer->checkStatus();
     fBuffer->release();
 
@@ -231,7 +239,6 @@ void DeferredRenderer::DeleteBuffers()
     glDeleteTextures(1,&tDepth);
 
     gl->glDeleteTextures(1, &fboColor);
-    gl->glDeleteTextures(1, &fboDepth);
 }
 
 void DeferredRenderer::passLightsToProgram()
@@ -279,10 +286,12 @@ void DeferredRenderer::passLightsToProgram()
                  if(int(light->type)==0)
                  {
                     scaleMatrix.scale(light->range, light->range, light->range);
-                    program.setUniformValue("viewMatrix", camera->viewMatrix);
-                    program.setUniformValue("projectionMatrix", camera->projectionMatrix);
-                    program.setUniformValue("worldMatrix", worldMatrix*scaleMatrix);
-
+//                    program.setUniformValue("viewMatrix", camera->viewMatrix);
+//                    program.setUniformValue("projectionMatrix", camera->projectionMatrix);
+//                    program.setUniformValue("worldMatrix", worldMatrix*scaleMatrix);
+                    program.setUniformValue("viewMatrix", QMatrix4x4());
+                    program.setUniformValue("projectionMatrix", QMatrix4x4());
+                    program.setUniformValue("worldMatrix", QMatrix4x4());
                  }
                  else
                  {
@@ -293,18 +302,17 @@ void DeferredRenderer::passLightsToProgram()
 
 
                  if(int(light->type)==0)
-                 {
-                    for (auto submesh : resourceManager->sphere->submeshes)
-                    {
-                        submesh->draw();
-                    }
+              {
+                   for (auto submesh : resourceManager->sphere->submeshes)
+                   {
+                       submesh->draw();
+                   }
+
                  }
                  else
                  {
                      glDisable(GL_CULL_FACE);
-                     //glCullFace(GL_BACK);
                      resourceManager->quad->submeshes[0]->draw();
-                     //glCullFace(GL_FRONT);
                      glEnable(GL_CULL_FACE);
                  }
              }
@@ -485,8 +493,6 @@ void DeferredRenderer::passBlit()
             }
             else if(shownTexture() == "Final Deferred")
             {
-                 gl->glBindTexture(GL_TEXTURE_2D, tBackground);
-                resourceManager->quad->submeshes[0]->draw();
                 gl->glBindTexture(GL_TEXTURE_2D, fboColor);
             }
 
