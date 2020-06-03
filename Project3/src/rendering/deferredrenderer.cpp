@@ -94,8 +94,6 @@ void DeferredRenderer::render(Camera *camera)
 
     // Passes
     passMeshes(camera);
-
-
     gBuffer->release();
 
 
@@ -104,7 +102,7 @@ void DeferredRenderer::render(Camera *camera)
     //---------------------Shading Pass--------------//
 
     fBuffer->bind();
-     gl->glClear(GL_COLOR_BUFFER_BIT);
+    gl->glClear(GL_COLOR_BUFFER_BIT);
 
     //Lightning
     //depth mask deactivated
@@ -112,11 +110,12 @@ void DeferredRenderer::render(Camera *camera)
     //culling deactivated for directional and depth activated
     //culling backface for point and depth deactivated
 
-     glDepthMask(false);
-     glEnable(GL_DEPTH_TEST);
-     glEnable(GL_BLEND);
-     glBlendFunc(GL_ONE, GL_ONE);
-     passLightsToProgram();
+    glDepthMask(false);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    gl->glBlendEquation(GL_FUNC_ADD);
+    glBlendFunc(GL_ONE, GL_ONE);
+    passLightsToProgram();
 
 
     //Background and grid
@@ -130,8 +129,6 @@ void DeferredRenderer::render(Camera *camera)
     passBackground(camera);
     fBuffer->release();
 
-
-
     //------------------------------------------------//
 
     passBlit();
@@ -142,11 +139,13 @@ void DeferredRenderer::render(Camera *camera)
 
 void DeferredRenderer::CreateBuffers(int width, int height)
 {
+    OpenGLErrorGuard guard("Deferred:CreateBuffs");
+
     gBuffer->bind();
 
     glGenTextures(1,&tPosition);
     glBindTexture(GL_TEXTURE_2D,tPosition);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB16F,width,height,0,GL_RGB,GL_FLOAT,NULL);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB32F,width,height,0,GL_RGB,GL_FLOAT,NULL);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -155,7 +154,7 @@ void DeferredRenderer::CreateBuffers(int width, int height)
 
     glGenTextures(1,&tNormal);
     glBindTexture(GL_TEXTURE_2D,tNormal);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB16F,width,height,0,GL_RGB,GL_FLOAT,NULL);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB32F,width,height,0,GL_RGB,GL_FLOAT,NULL);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -164,7 +163,7 @@ void DeferredRenderer::CreateBuffers(int width, int height)
 
     glGenTextures(1,&tMaterial);
     glBindTexture(GL_TEXTURE_2D,tMaterial);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,NULL);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,width,height,0,GL_RGBA,GL_FLOAT,NULL);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -180,17 +179,8 @@ void DeferredRenderer::CreateBuffers(int width, int height)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     gBuffer->addDepthAttachment(tDepth,0);
 
-    glGenTextures(1,&tBackground);
-    glBindTexture(GL_TEXTURE_2D,tBackground);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,NULL);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    gBuffer->addColorAttachment(3,tBackground,0);
-
-    uint attachments[4]={GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3};
-    gl->glDrawBuffers(4,attachments);
+    uint attachments[3]={GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2};
+    gl->glDrawBuffers(3,attachments);
 
     gBuffer->checkStatus();
     gBuffer->release();
@@ -287,16 +277,18 @@ void DeferredRenderer::passLightsToProgram()
 
 
                  if(int(light->type)==0)
-              {
+                 {
                      glDisable(GL_DEPTH_TEST);
                      glEnable(GL_CULL_FACE);
                      glCullFace(GL_FRONT);
-                   for (auto submesh : resourceManager->sphere->submeshes)
-                   {
-                       submesh->draw();
-                   }
-                   glDisable(GL_CULL_FACE);
-                    glEnable(GL_DEPTH_TEST);
+
+                     for (auto submesh : resourceManager->sphere->submeshes)
+                     {
+                         submesh->draw();
+                     }
+
+                     glDisable(GL_CULL_FACE);
+                     glEnable(GL_DEPTH_TEST);
                  }
                  else
                  {

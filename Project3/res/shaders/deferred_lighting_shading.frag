@@ -25,11 +25,6 @@ void main(void)
     // retrieve data from G-buffer
     vec3 fragPos = texture(gPosition, TexCoords).rgb;
     vec3 norm = texture(gNormal, TexCoords).rgb;//*2-vec3(1.0);
-//    if(length(norm) == 0.0)
-//    {
-//        discard;
-//    }
-
     vec3 albedo = texture(gAlbedoSpec, TexCoords).rgb;
 
     vec3 view_direction = normalize(viewPos - fragPos);
@@ -47,8 +42,8 @@ void main(void)
 
         //attenuation (cutre, linear)
         float distance = length(lightPosition-fragPos);
-//        float attenuation = max(1.0-(distance/lightRange),0.0);
-//       attenuation = pow(attenuation,2.0);
+//      float attenuation = max(1.0-(distance/lightRange),0.0);
+//      attenuation = pow(attenuation,2.0);
         float attenuation = (1.0-smoothstep(0,lightRange,distance));
 
         vec3 diffuse_res =lightColor *diff * albedo;
@@ -72,7 +67,6 @@ void main(void)
         vec3 specular_res = spec * lightColor;
         final_color = (diffuse_res + specular_res)+(0.05 * albedo);
     }
-
 
     res = final_color;
     FragColor=vec4(res,1.0);
