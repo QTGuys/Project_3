@@ -14,6 +14,7 @@ out vec4 outColor;
 
 void main()
 {
+    gl_FragDepth = 0.0;
     vec2 texCoords = gl_FragCoord.xy / viewportSize;
     vec3 rayViewspace = normalize(vec3(vec2(left,bottom)+texCoords * vec2(right-left, top-bottom), -znear));
     vec3 rayWorldspace = vec3(worldMatrix * vec4(rayViewspace,0.0));
@@ -30,5 +31,5 @@ void main()
     vec3 skyColor = skyFactor * bgColor*0.7;
     outColor.rgb = groundColor + skyColor+ horizonColor;
     outColor.a = 1.0;
-    gl_FragDepth = 1.0;
+
 }

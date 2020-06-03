@@ -128,22 +128,7 @@ void DeferredRenderer::render(Camera *camera)
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_CULL_FACE);
     passBackground(camera);
-
     fBuffer->release();
-    //glEnable(GL_CULL_FACE);
-
-//   // glDisable(GL_DEPTH_TEST);
-//    glEnable(GL_CULL_FACE);
-//    glCullFace(GL_FRONT);
-
-//    glCullFace(GL_BACK);
-//    glDepthMask(true);
-//   passBackground(camera);
-
-
-//    gl->glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-//    //glDisable(GL_BLEND);
-//    glCullFace(GL_FRONT);
 
 
 
@@ -286,12 +271,12 @@ void DeferredRenderer::passLightsToProgram()
                  if(int(light->type)==0)
                  {
                     scaleMatrix.scale(light->range, light->range, light->range);
-//                    program.setUniformValue("viewMatrix", camera->viewMatrix);
-//                    program.setUniformValue("projectionMatrix", camera->projectionMatrix);
-//                    program.setUniformValue("worldMatrix", worldMatrix*scaleMatrix);
-                    program.setUniformValue("viewMatrix", QMatrix4x4());
-                    program.setUniformValue("projectionMatrix", QMatrix4x4());
-                    program.setUniformValue("worldMatrix", QMatrix4x4());
+                    program.setUniformValue("viewMatrix", camera->viewMatrix);
+                    program.setUniformValue("projectionMatrix", camera->projectionMatrix);
+                    program.setUniformValue("worldMatrix", worldMatrix*scaleMatrix);
+                   //program.setUniformValue("viewMatrix", QMatrix4x4());
+                   //program.setUniformValue("projectionMatrix", QMatrix4x4());
+                   //program.setUniformValue("worldMatrix", QMatrix4x4());
                  }
                  else
                  {
@@ -303,11 +288,15 @@ void DeferredRenderer::passLightsToProgram()
 
                  if(int(light->type)==0)
               {
+                     glDisable(GL_DEPTH_TEST);
+                     glEnable(GL_CULL_FACE);
+                     glCullFace(GL_FRONT);
                    for (auto submesh : resourceManager->sphere->submeshes)
                    {
                        submesh->draw();
                    }
-
+                   glDisable(GL_CULL_FACE);
+                    glEnable(GL_DEPTH_TEST);
                  }
                  else
                  {
