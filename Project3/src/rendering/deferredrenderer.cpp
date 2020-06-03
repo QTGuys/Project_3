@@ -442,6 +442,8 @@ void DeferredRenderer::passBackground(Camera *camera)
         program.setUniformValue("top",viewportParams.w());
         program.setUniformValue("znear",camera->znear);
         program.setUniformValue("worldMatrix",camera->worldMatrix);
+        program.setUniformValue("viewMatrix",camera->viewMatrix);
+        program.setUniformValue("projectionMatrix",camera->projectionMatrix);
 
         program.setUniformValue("backgroundColor", scene->backgroundColor);
 
