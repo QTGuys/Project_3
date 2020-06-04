@@ -28,17 +28,20 @@ private:
     void passLightsToProgram();
     void passMeshes(Camera* camera);
     void passBackground(Camera* camera);
+    void passOutline(Camera* camera);
 
 public:
 
     FramebufferObject* gBuffer = nullptr;
     FramebufferObject* fBuffer = nullptr;
+    FramebufferObject* fOutline = nullptr;
 
     uint tPosition = 0;
     uint tNormal = 0;
     uint tMaterial = 0;
     uint tDepth = 0;
     uint tBackground = 0;
+    uint tOutline = 0;
 
    uint fboColor = 0;
 
@@ -47,6 +50,7 @@ private:
     ShaderProgram* deferredLightingShading = nullptr;
     ShaderProgram *blitProgram = nullptr;
     ShaderProgram* backgroundProgram = nullptr;
+    ShaderProgram* outlineProgram = nullptr;
 
 };
 

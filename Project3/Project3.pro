@@ -120,6 +120,8 @@ DISTFILES += \
     res/shaders/deferred_shading.vert \
     res/shaders/forward_shading.frag \
     res/shaders/forward_shading.vert \
+    res/shaders/outline_shading.frag \
+    res/shaders/outline_shading.vert \
     res/shaders/selection_shading.frag \
     res/shaders/selection_shading.vert \
     res/shaders/texture_view.frag \

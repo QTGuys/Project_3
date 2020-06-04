@@ -36,13 +36,20 @@ void DeferredRenderer::initialize()
     deferredShading->fragmentShaderFilename = "res/shaders/deferred_shading.frag";
     deferredShading->includeForSerialization = false;
 
-
+    outlineProgram = resourceManager->createShaderProgram();
+    outlineProgram->name = "Outline shading";
+    outlineProgram->vertexShaderFilename = "res/shaders/outline_shading.vert";
+    outlineProgram->fragmentShaderFilename = "res/shaders/outline_shading.frag";
+    outlineProgram->includeForSerialization = false;
 
     gBuffer = new FramebufferObject();
     gBuffer->create();
 
     fBuffer=new FramebufferObject();
     fBuffer->create();
+
+   fOutline = new FramebufferObject();
+   fOutline->create();
 
     CreateBuffers(camera->viewportWidth,camera->viewportHeight);
 
@@ -83,13 +90,11 @@ void DeferredRenderer::render(Camera *camera)
     OpenGLErrorGuard guard("DeferredRenderer::render()");
 
     //-----------------Geometry Pass------------------//
-    glEnable(GL_DEPTH_TEST);
+
     gBuffer->bind();
-
-    // Clear color
-    //gl->glClearDepth(1.0);
-   // gl->glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
+    gl->glEnable(GL_DEPTH_TEST);
+    gl->glDepthMask(true);
+    gl->glDisable(GL_BLEND);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Passes
@@ -99,22 +104,28 @@ void DeferredRenderer::render(Camera *camera)
 
     //----------------------------------------------------//
 
+
+    if(selection->entities[0] != nullptr)
+    {
+        fOutline->bind();
+         gl->glClear(GL_COLOR_BUFFER_BIT);
+         passOutline(camera);
+         fOutline->release();
+    }
     //---------------------Shading Pass--------------//
 
     fBuffer->bind();
-    gl->glClear(GL_COLOR_BUFFER_BIT);
-
     //Lightning
     //depth mask deactivated
     //blending active and additive
     //culling deactivated for directional and depth activated
     //culling backface for point and depth deactivated
-
-    glDepthMask(false);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
+    gl->glClear(GL_COLOR_BUFFER_BIT);
+    gl->glDepthMask(false);
+    gl->glEnable(GL_DEPTH_TEST);
+    gl->glEnable(GL_BLEND);
     gl->glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_ONE, GL_ONE);
+    gl->glBlendFunc(GL_ONE, GL_ONE);
     passLightsToProgram();
 
 
@@ -122,17 +133,18 @@ void DeferredRenderer::render(Camera *camera)
     //depth test deactivated
     //blending active with transparency (glsrc alpha,gl_one minus src alpha)
     //culling deactivated
-    glDepthMask(true);
-    //glDisable(GL_DEPTH_TEST);
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_CULL_FACE);
+    gl->glDepthMask(true);
+    //gl->glDisable(GL_DEPTH_TEST);
+    gl->glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    gl->glDisable(GL_CULL_FACE);
     passBackground(camera);
     fBuffer->release();
 
     //------------------------------------------------//
-
+    gl->glDisable(GL_BLEND);
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     passBlit();
-    glDisable(GL_BLEND);
+
 
 }
 
@@ -204,6 +216,19 @@ void DeferredRenderer::CreateBuffers(int width, int height)
     fBuffer->checkStatus();
     fBuffer->release();
 
+    fOutline->bind();
+
+    glGenTextures(1,&tOutline);
+    glBindTexture(GL_TEXTURE_2D,tOutline);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,width,height,0,GL_RGB,GL_UNSIGNED_BYTE,NULL);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gBuffer->addColorAttachment(0,tOutline,0);
+
+    fOutline->checkStatus();
+    fOutline->release();
 }
 
 void DeferredRenderer::DeleteBuffers()
@@ -286,7 +311,7 @@ void DeferredRenderer::passLightsToProgram()
                      {
                          submesh->draw();
                      }
-
+                     glCullFace(GL_BACK);
                      glDisable(GL_CULL_FACE);
                      glEnable(GL_DEPTH_TEST);
                  }
@@ -444,12 +469,39 @@ void DeferredRenderer::passBackground(Camera *camera)
 
         program.release();
     }
+    glState.reset();
+}
+
+void DeferredRenderer::passOutline(Camera *camera)
+{
+    QOpenGLShaderProgram &program = outlineProgram->program;
+
+    if(program.bind())
+    {
+        Entity* selec = selection->entities[0];
+        QMatrix4x4 worldMatrix = selec->transform->matrix();
+
+        QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix;
+
+        program.setUniformValue("worldViewMatrix", worldViewMatrix);
+        program.setUniformValue("projectionMatrix", camera->projectionMatrix);
+
+        if (selec->meshRenderer->mesh != nullptr)
+        {
+
+            for (auto submesh : selec->meshRenderer->mesh->submeshes)
+            {
+                submesh->draw();
+            }
+        }
+        program.release();
+    }
 }
 
 void DeferredRenderer::passBlit()
 {
 
-       // gl->glDisable(GL_DEPTH_TEST);
+       gl->glDisable(GL_DEPTH_TEST);
 
         QOpenGLShaderProgram &program = blitProgram->program;
 
@@ -472,7 +524,7 @@ void DeferredRenderer::passBlit()
             }
             else if(shownTexture() == "Depth")
             {
-                 gl->glBindTexture(GL_TEXTURE_2D, tBackground);
+                 gl->glBindTexture(GL_TEXTURE_2D, tOutline);
             }
             else if(shownTexture() == "Final Deferred")
             {
