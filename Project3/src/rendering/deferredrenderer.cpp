@@ -105,13 +105,15 @@ void DeferredRenderer::render(Camera *camera)
     //----------------------------------------------------//
 
 
-    if(selection->entities[0] != nullptr)
+
+    fOutline->bind();
+    gl->glClear(GL_COLOR_BUFFER_BIT);
+    if(selection->entities[0] != nullptr && selection->entities[0]->meshRenderer != nullptr)
     {
-        fOutline->bind();
-         gl->glClear(GL_COLOR_BUFFER_BIT);
-         passOutline(camera);
-         fOutline->release();
+        passOutline(camera);
     }
+    fOutline->release();
+
     //---------------------Shading Pass--------------//
 
     fBuffer->bind();
@@ -464,6 +466,11 @@ void DeferredRenderer::passBackground(Camera *camera)
 
         program.setUniformValue("backgroundColor", scene->backgroundColor);
 
+        program.setUniformValue("mask",0);
+        gl->glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, tOutline);
+
+
         resourceManager->quad->submeshes[0]->draw();
 
 
@@ -486,14 +493,12 @@ void DeferredRenderer::passOutline(Camera *camera)
         program.setUniformValue("worldViewMatrix", worldViewMatrix);
         program.setUniformValue("projectionMatrix", camera->projectionMatrix);
 
-        if (selec->meshRenderer->mesh != nullptr)
-        {
 
-            for (auto submesh : selec->meshRenderer->mesh->submeshes)
-            {
-                submesh->draw();
-            }
+        for (auto submesh : selec->meshRenderer->mesh->submeshes)
+        {
+            submesh->draw();
         }
+
         program.release();
     }
 }
