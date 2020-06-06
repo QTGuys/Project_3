@@ -7,6 +7,7 @@ uniform float right;
 uniform float bottom;
 uniform float top;
 uniform float znear;
+uniform float zfar;
 uniform mat4 worldMatrix;
 uniform vec4 backgroundColor;
 uniform mat4 viewMatrix;
@@ -42,9 +43,14 @@ vec4 Background()
     return ret;
 }
 
-vec4 Grid(vec3 hitPoint, vec3 gridSteps)
+vec4 Grid(vec3 hitPoint,vec3 eyePos, vec3 gridSteps)
 {
-    vec4 ret;
+    float dist = length(hitPoint.xz-eyePos.xz);
+    float mixFactor = min(dist/(zfar/200.0),1.0);
+    float lineMF=mixFactor;
+
+    vec4 gridColor;
+    vec4 backColor;
 
     vec2 grid_1 = fwidth(hitPoint.xz)/mod(hitPoint.xz,gridSteps.x);
     float line_1 = step(1.0,max(grid_1.x,grid_1.y));
@@ -53,24 +59,30 @@ vec4 Grid(vec3 hitPoint, vec3 gridSteps)
     vec2 grid_3 = fwidth(hitPoint.xz)/mod(hitPoint.xz,gridSteps.z);
     float line_3 = step(1.0,max(grid_3.x,grid_3.y));
 
+    vec4 ret;
+
+    backColor=Background();
+    ret=backColor;
+
     if(line_1==1.0)
     {
-        ret=vec4(1.0,0.0,1.0,1.0);
+
+        gridColor=vec4(1.0,0.0,1.0,1.0);
+        lineMF=min(mixFactor*1.5,1.0);
 
         if(line_2==1.0)
         {
-            ret=vec4(1.0,0.0,0.0,1.0);
+            gridColor=vec4(1.0,0.0,0.0,1.0);
+            lineMF=min(mixFactor*1.25,1.0);
 
             if(line_3==1.0)
             {
-                ret=vec4(1.0,1.0,1.0,1.0);
+                gridColor=vec4(1.0,1.0,1.0,1.0);
+                lineMF=mixFactor;
             }
         }
 
-    }
-    else
-    {
-        ret=Background();
+        ret = mix(gridColor,backColor,lineMF);
     }
 
     return ret;
@@ -133,7 +145,7 @@ void main()
             float ndcDepth = hitClip.z/hitClip.w;
             gl_FragDepth=((gl_DepthRange.diff*ndcDepth)+gl_DepthRange.near + gl_DepthRange.far)/2.0;
 
-            outColor = Grid(hitWorldspace,vec3(1.0,10.0,100.0));
+            outColor = Grid(hitWorldspace,eyePosWorldspace,vec3(1.0,10.0,100.0));
         }
         else
         {

@@ -460,6 +460,7 @@ void DeferredRenderer::passBackground(Camera *camera)
         program.setUniformValue("bottom",viewportParams.z());
         program.setUniformValue("top",viewportParams.w());
         program.setUniformValue("znear",camera->znear);
+        program.setUniformValue("zfar",camera->zfar);
         program.setUniformValue("worldMatrix",camera->worldMatrix);
         program.setUniformValue("viewMatrix",camera->viewMatrix);
         program.setUniformValue("projectionMatrix",camera->projectionMatrix);
