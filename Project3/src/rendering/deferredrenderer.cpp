@@ -1,5 +1,4 @@
 #include "deferredrenderer.h"
-#include "gl.h"
 #include "framebufferobject.h"
 
 #include "resources/material.h"
@@ -51,6 +50,8 @@ void DeferredRenderer::initialize()
    fOutline = new FramebufferObject();
    fOutline->create();
 
+    initializeBloom();
+
     CreateBuffers(camera->viewportWidth,camera->viewportHeight);
 
     blitProgram = resourceManager->createShaderProgram();
@@ -71,6 +72,24 @@ void DeferredRenderer::initialize()
     backgroundProgram->fragmentShaderFilename = "res/shaders/background_shading.frag";
     backgroundProgram->includeForSerialization = false;
 
+    blitBrightestPixels = resourceManager->createShaderProgram();
+    blitBrightestPixels->name = "Blit brightest pixels";
+    blitBrightestPixels->vertexShaderFilename = "res/shaders/blit_brightest_pixel.vert";
+    blitBrightestPixels->fragmentShaderFilename = "res/shaders/blit_brightest_pixel.frag";
+    blitBrightestPixels->includeForSerialization = false;
+
+    blur = resourceManager->createShaderProgram();
+    blur->name = "Blur shader";
+    blur->vertexShaderFilename = "res/shaders/blur_shading.vert";
+    blur->fragmentShaderFilename = "res/shaders/blur_shading.frag";
+    blur->includeForSerialization = false;
+
+    bloomProgram = resourceManager->createShaderProgram();
+    bloomProgram->name = "Bloom shader";
+    bloomProgram->vertexShaderFilename = "res/shaders/bloom_shading.vert";
+    bloomProgram->fragmentShaderFilename = "res/shaders/bloom_shading.frag";
+    bloomProgram->includeForSerialization = false;
+
 
 }
 
@@ -79,17 +98,41 @@ void DeferredRenderer::finalize()
     DeleteBuffers();
 }
 
+void DeferredRenderer::initializeBloom()
+{
+    
+    fboBloom1 = new FramebufferObject();
+    fboBloom1->create();
+    fboBloom2 = new FramebufferObject();
+    fboBloom2->create();
+    fboBloom3 = new FramebufferObject();
+    fboBloom3->create();
+    fboBloom4 = new FramebufferObject();
+    fboBloom4->create();
+    fboBloom5 = new FramebufferObject();
+    fboBloom5->create();
+}
+
 void DeferredRenderer::resize(int width, int height)
 {
     DeleteBuffers();
+     resizeBloom(width,height);
     CreateBuffers(width,height);
 
 }
+
+void DeferredRenderer::resizeBloom(int w, int h)
+{
+
+    
+}
+
 void DeferredRenderer::render(Camera *camera)
 {
     OpenGLErrorGuard guard("DeferredRenderer::render()");
 
     //-----------------Geometry Pass------------------//
+   //clearBloomBuffers();
 
     gBuffer->bind();
     gl->glEnable(GL_DEPTH_TEST);
@@ -143,11 +186,133 @@ void DeferredRenderer::render(Camera *camera)
     fBuffer->release();
 
     //------------------------------------------------//
-    gl->glDisable(GL_BLEND);
-    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //gl->glDisable(GL_BLEND);
+    //gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    renderBloom(camera);
     passBlit();
 
 
+
+}
+
+void DeferredRenderer::renderBloom(Camera* camera)
+{
+#define LOD(x) x
+    const QVector2D horizontal(1.0,0.0);
+    const QVector2D vertical(0.0,1.0);
+
+    const float w = camera->viewportWidth;
+    const float h = camera->viewportHeight;
+
+    //horizontal blur
+    float threshold = 1.0;
+    passBlightBrightPixels(fboBloom1, QVector2D(w/2,h/2),GL_COLOR_ATTACHMENT0,fboColor,LOD(0),threshold);
+    gl->glBindTexture(GL_TEXTURE_2D,rtBright);
+    gl->glGenerateMipmap(GL_TEXTURE_2D);
+
+    //horizontal blur
+    passBlur(fboBloom1,QVector2D(w/2,h/2),GL_COLOR_ATTACHMENT1, rtBright,LOD(0),horizontal);
+    passBlur(fboBloom2,QVector2D(w/4,h/4),GL_COLOR_ATTACHMENT1, rtBright,LOD(1),horizontal);
+    passBlur(fboBloom3,QVector2D(w/8,h/8),GL_COLOR_ATTACHMENT1, rtBright,LOD(2),horizontal);
+    passBlur(fboBloom4,QVector2D(w/16,h/16),GL_COLOR_ATTACHMENT1, rtBright,LOD(3),horizontal);
+    passBlur(fboBloom5,QVector2D(w/32,h/32),GL_COLOR_ATTACHMENT1, rtBright,LOD(4),horizontal);
+
+    //vertical blur
+    passBlur(fboBloom1,QVector2D(w/2,h/2),GL_COLOR_ATTACHMENT0,     rtBloomH,LOD(0),  vertical);
+    passBlur(fboBloom2,QVector2D(w/4,h/4),GL_COLOR_ATTACHMENT0,     rtBloomH,LOD(1),  vertical);
+    passBlur(fboBloom3,QVector2D(w/8,h/8),GL_COLOR_ATTACHMENT0,     rtBloomH,LOD(2),  vertical);
+    passBlur(fboBloom4,QVector2D(w/16,h/16),GL_COLOR_ATTACHMENT0,  rtBloomH,LOD(3),vertical);
+    passBlur(fboBloom5,QVector2D(w/32,h/32),GL_COLOR_ATTACHMENT0, rtBloomH,LOD(4),vertical);
+
+    passBloom(fBuffer,GL_COLOR_ATTACHMENT0,rtBright,4);
+
+        #undef LOD
+
+}
+
+void DeferredRenderer::passBlightBrightPixels(FramebufferObject *fbo, const QVector2D &viewportSize, GLenum colorAttachment, uint inputTexture, int inputLod, float threshold)
+{
+    fbo->bind();
+    gl->glDrawBuffer(colorAttachment);
+   // gl->glClearColor(1.0,1.0,1.0,1.0);
+    //gl->glClear(GL_COLOR_BUFFER_BIT);
+
+    gl->glViewport(0,0,viewportSize.x(), viewportSize.y());
+
+
+    QOpenGLShaderProgram &program = blitBrightestPixels->program;
+
+    if(program.bind())
+    {
+        program.setUniformValue("colorTexture",0);
+        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glBindTexture(GL_TEXTURE_2D, inputTexture);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+
+        resourceManager->quad->submeshes[0]->draw();
+
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+        program.release();
+    }
+  fbo->release();
+}
+
+void DeferredRenderer::passBlur(FramebufferObject *pfbo, const QVector2D &viewportSize, GLenum colorAttachment, uint inputTexture, int inputLod, const QVector2D &direction)
+{
+    pfbo->bind();
+    gl->glDrawBuffer(colorAttachment);
+    gl->glViewport(0,0,viewportSize.x(),viewportSize.y());
+
+    gl->glDisable(GL_DEPTH_TEST);
+    gl->glDisable(GL_BLEND);
+
+    QOpenGLShaderProgram& program = blur->program;
+    if(program.bind())
+    {
+        program.setUniformValue("colorMap",0);
+        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glBindTexture(GL_TEXTURE_2D,inputTexture);
+
+
+        program.setUniformValue("inputLod",inputLod);
+        program.setUniformValue("direction",direction);
+
+        resourceManager->quad->submeshes[0]->draw();
+
+        program.release();
+    }
+    gl->glEnable(GL_DEPTH_TEST);
+    gl->glEnable(GL_BLEND);
+    pfbo->release();
+}
+
+void DeferredRenderer::passBloom(FramebufferObject *fbo, GLenum colorAttachment, uint inputTexture, int maxLod)
+{
+    fbo->bind();
+    gl->glDrawBuffer(colorAttachment);
+    gl->glViewport(0,0,camera->viewportWidth,camera->viewportHeight);
+
+    gl->glDisable(GL_DEPTH_TEST);
+    gl->glEnable(GL_BLEND);
+    gl->glBlendFunc(GL_ONE,GL_ONE);
+
+    QOpenGLShaderProgram& program = bloomProgram->program;
+
+    if(program.bind())
+    {
+        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glBindTexture(GL_TEXTURE_2D,inputTexture);
+        program.setUniformValue("colorMap",0);
+
+        program.setUniformValue("maxLod",maxLod);
+        resourceManager->quad->submeshes[0]->draw();
+
+        program.release();
+
+    }
+    fbo->release();
 }
 
 
@@ -208,7 +373,7 @@ void DeferredRenderer::CreateBuffers(int width, int height)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, nullptr);
 
     // Attach textures to the fbo
 
@@ -231,6 +396,76 @@ void DeferredRenderer::CreateBuffers(int width, int height)
 
     fOutline->checkStatus();
     fOutline->release();
+
+    CreateBuffersBloom(width,height);
+}
+
+void DeferredRenderer::CreateBuffersBloom(int w, int h)
+{
+#define MIPMAP_BASE_LEVEL 0
+#define MIPMAP_MAX_LEVEL 4
+
+    if(rtBright != 0) gl->glDeleteTextures(1,&rtBright);
+    gl->glGenTextures(1,&rtBright);
+    gl->glBindTexture(GL_TEXTURE_2D, rtBright);
+    gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
+    gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_BASE_LEVEL,MIPMAP_BASE_LEVEL);
+    gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAX_LEVEL,MIPMAP_MAX_LEVEL);
+    gl->glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA16F,w/2,h/2,0,GL_RGBA,GL_FLOAT,nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D,1,GL_RGBA16F,w/4,h/4,0,GL_RGBA,GL_FLOAT,nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D,2,GL_RGBA16F,w/8,h/8,0,GL_RGBA,GL_FLOAT,nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D,3,GL_RGBA16F,w/16,h/16,0,GL_RGBA,GL_FLOAT,nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D,4,GL_RGBA16F,w/32,h/32,0,GL_RGBA,GL_FLOAT,nullptr);
+    gl->glGenerateMipmap(GL_TEXTURE_2D);
+
+    if(rtBloomH != 0) gl->glDeleteTextures(1,&rtBloomH);
+    gl->glGenTextures(1,&rtBloomH);
+    gl->glBindTexture(GL_TEXTURE_2D, rtBloomH);
+    gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
+    gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_BASE_LEVEL,MIPMAP_BASE_LEVEL);
+    gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAX_LEVEL,MIPMAP_MAX_LEVEL);
+    gl->glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA16F,w/2,h/2,0,GL_RGBA,GL_FLOAT,nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D,1,GL_RGBA16F,w/4,h/4,0,GL_RGBA,GL_FLOAT,nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D,2,GL_RGBA16F,w/8,h/8,0,GL_RGBA,GL_FLOAT,nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D,3,GL_RGBA16F,w/16,h/16,0,GL_RGBA,GL_FLOAT,nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D,4,GL_RGBA16F,w/32,h/32,0,GL_RGBA,GL_FLOAT,nullptr);
+    gl->glGenerateMipmap(GL_TEXTURE_2D);
+
+    fboBloom1->bind();
+    fboBloom1->addColorAttachment(0,rtBright,0);
+    fboBloom1->addColorAttachment(1,rtBloomH,0);
+    fboBloom1->checkStatus();
+    fboBloom1->release();
+
+    fboBloom2->bind();
+    fboBloom2->addColorAttachment(0,rtBright,1);
+    fboBloom2->addColorAttachment(1,rtBloomH,1);
+    fboBloom2->checkStatus();
+    fboBloom2->release();
+
+    fboBloom3->bind();
+    fboBloom3->addColorAttachment(0,rtBright,2);
+    fboBloom3->addColorAttachment(1,rtBloomH,2);
+    fboBloom3->checkStatus();
+    fboBloom3->release();
+
+    fboBloom4->bind();
+    fboBloom4->addColorAttachment(0,rtBright,3);
+    fboBloom4->addColorAttachment(1,rtBloomH,3);
+    fboBloom4->checkStatus();
+    fboBloom4->release();
+
+    fboBloom5->bind();
+    fboBloom5->addColorAttachment(0,rtBright,4);
+    fboBloom5->addColorAttachment(1,rtBloomH,4);
+    fboBloom5->checkStatus();
+    fboBloom5->release();
 }
 
 void DeferredRenderer::DeleteBuffers()
@@ -504,9 +739,45 @@ void DeferredRenderer::passOutline(Camera *camera)
     }
 }
 
+void DeferredRenderer::clearBloomBuffers()
+{
+    fboBloom1->bind();
+    uint attachments[2]={GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1};
+    gl->glDrawBuffers(2,attachments);
+    gl->glClearColor(0.0,0.0,0.0,1.0);
+    gl->glClear(GL_COLOR_BUFFER_BIT);
+    fboBloom1->release();
+
+    fboBloom2->bind();
+    gl->glDrawBuffers(2,attachments);
+    gl->glClearColor(0.0,0.0,0.0,1.0);
+    gl->glClear(GL_COLOR_BUFFER_BIT);
+    fboBloom2->release();
+
+    fboBloom3->bind();
+    gl->glDrawBuffers(2,attachments);
+    gl->glClearColor(0.0,0.0,0.0,1.0);
+    gl->glClear(GL_COLOR_BUFFER_BIT);
+    fboBloom3->release();
+
+    fboBloom4->bind();
+    gl->glDrawBuffers(2,attachments);
+    gl->glClearColor(0.0,0.0,0.0,1.0);
+    gl->glClear(GL_COLOR_BUFFER_BIT);
+    fboBloom4->release();
+
+    fboBloom5->bind();
+    gl->glDrawBuffers(2,attachments);
+    gl->glClearColor(0.0,0.0,0.0,1.0);
+    gl->glClear(GL_COLOR_BUFFER_BIT);
+    fboBloom5->release();
+
+
+}
+
 void DeferredRenderer::passBlit()
 {
-
+        //gl->glViewport(0,0,camera->viewportWidth,camera->viewportHeight);
        gl->glDisable(GL_DEPTH_TEST);
 
         QOpenGLShaderProgram &program = blitProgram->program;
@@ -526,11 +797,11 @@ void DeferredRenderer::passBlit()
             }
             else if(shownTexture() == "Material")
             {
-                 gl->glBindTexture(GL_TEXTURE_2D, tMaterial);
+                 gl->glBindTexture(GL_TEXTURE_2D, rtBloomH);
             }
             else if(shownTexture() == "Depth")
             {
-                 gl->glBindTexture(GL_TEXTURE_2D, tOutline);
+                 gl->glBindTexture(GL_TEXTURE_2D, rtBright);
             }
             else if(shownTexture() == "Final Deferred")
             {

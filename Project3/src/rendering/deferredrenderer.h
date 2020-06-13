@@ -2,6 +2,7 @@
 #define DEFERREDRENDERER_H
 
 #include "renderer.h"
+#include "gl.h"
 
 class FramebufferObject;
 class ShaderProgram;
@@ -16,11 +17,18 @@ public:
 
     void initialize() override;
     void finalize() override;
+    void initializeBloom();
 
     void resize(int width, int height) override;
+    void resizeBloom(int w, int h);
     void render(Camera *camera) override;
+    void renderBloom(Camera* camera);
+    void passBlightBrightPixels(FramebufferObject* fbo, const QVector2D& viewportSize,GLenum colorAttachment,uint inputTexture,int inputLod, float threshold);
+    void passBlur(FramebufferObject* pfbo, const QVector2D &viewportSize, GLenum colorAttachment, uint inputTexture, int inputLod, const QVector2D &direction);
+    void passBloom(FramebufferObject* fbo, GLenum colorAttachment,uint inputTexture, int maxLod);
 
     void CreateBuffers(int width, int height);
+    void CreateBuffersBloom(int width, int height);
     void DeleteBuffers();
 
     void passBlit();
@@ -29,6 +37,7 @@ private:
     void passMeshes(Camera* camera);
     void passBackground(Camera* camera);
     void passOutline(Camera* camera);
+    void clearBloomBuffers();
 
 public:
 
@@ -51,6 +60,23 @@ private:
     ShaderProgram *blitProgram = nullptr;
     ShaderProgram* backgroundProgram = nullptr;
     ShaderProgram* outlineProgram = nullptr;
+    
+    
+    //------------Blur/Bloom thingies--------------------//
+    ShaderProgram *blitBrightestPixels = nullptr;
+    ShaderProgram *blur = nullptr;
+    ShaderProgram* bloomProgram = nullptr;
+    
+    uint rtBright;
+    uint rtBloomH;
+    FramebufferObject* fboBloom1 = nullptr;
+    FramebufferObject* fboBloom2 = nullptr;
+    FramebufferObject* fboBloom3 = nullptr;
+    FramebufferObject* fboBloom4 = nullptr;
+    FramebufferObject* fboBloom5 = nullptr;
+    
+    uint mipmap_level = 4;
+
 
 };
 
