@@ -114,6 +114,12 @@ DISTFILES += \
     res/shaders/background_shading.vert \
     res/shaders/blit.frag \
     res/shaders/blit.vert \
+    res/shaders/blit_brightest_pixel.frag \
+    res/shaders/blit_brightest_pixel.vert \
+    res/shaders/bloom_shading.frag \
+    res/shaders/bloom_shading.vert \
+    res/shaders/blur_shading.frag \
+    res/shaders/blur_shading.vert \
     res/shaders/deferred_lighting_shading.frag \
     res/shaders/deferred_lighting_shading.vert \
     res/shaders/deferred_shading.frag \
