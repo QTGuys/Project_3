@@ -24,7 +24,7 @@ public:
     void resize(int width, int height) override;
     void render(Camera *camera) override;
     void renderBloom(Camera* camera);
-    void passBlightBrightPixels(FramebufferObject* fbo, const QVector2D& viewportSize,GLenum colorAttachment,uint inputTexture,int inputLod, float threshold);
+    void passBlightBrightPixels(FramebufferObject* fbo, const QVector2D& viewportSize,GLenum colorAttachment,uint inputTexture,int inputLod);
     void passBlur(FramebufferObject* pfbo, const QVector2D &viewportSize, GLenum colorAttachment, uint inputTexture, int inputLod, const QVector2D &direction);
     void passBloom(FramebufferObject* fbo, GLenum colorAttachment,uint inputTexture, int maxLod);
 

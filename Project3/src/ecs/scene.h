@@ -37,6 +37,7 @@ public:
     bool renderWater=false;
     bool renderBloom = true;
     bool renderGrid=true;
+    float threshold = 1.0f;
 };
 
 

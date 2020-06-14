@@ -84,10 +84,12 @@ void Camera::LookAt(QVector3D point)
     pitch = qRadiansToDegrees(asin(direction.y()));
     yaw = (qRadiansToDegrees(atan2(direction.x(),direction.z()))-180.0);
 
+    printf("Look at: x:%f, y:%f, z:%f\n",position.x(),position.y(),position.z());
     while (yaw < 0.0f) yaw += 360.0f;
     while (yaw > 360.0f) yaw -= 360.0f;
     if (pitch > 89.0f) pitch = 89.0f;
     if (pitch < -89.0f) pitch = -89.0f;
+    prepareMatrices();
 }
 
 

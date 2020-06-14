@@ -20,6 +20,7 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
     connect(ui->checkBoxLightSources, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
     connect(ui->checkBoxBloom, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
     connect(ui->checkBoxWater,SIGNAL(clicked()),this, SLOT(onVisualHintChanged()));
+    connect(ui->thresholdSlider, SIGNAL(valueChanged(int)),this,SLOT(onVisualHintChanged()));
 }
 
 MiscSettingsWidget::~MiscSettingsWidget()
@@ -65,5 +66,6 @@ void MiscSettingsWidget::onVisualHintChanged()
     scene->renderWater = ui->checkBoxWater->isChecked();
     scene->renderBloom = ui->checkBoxBloom->isChecked();
     scene->renderGrid=ui->checkBoxGrid->isChecked();
+    scene->threshold = ui->thresholdSlider->value()/100;
     emit settingsChanged();
 }

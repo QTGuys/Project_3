@@ -51,9 +51,9 @@ bool Interaction::idle()
 {
     if (input->mouseButtons[Qt::RightButton] == MouseButtonState::Pressed)
     {
-//         if(selection->count>0)
-//            nextState=State::Orbit;
-//         else
+         if(selection->count>0)
+            nextState=State::Orbit;
+         else
             nextState = State::Navigating;
     }
     else if (input->mouseButtons[Qt::LeftButton] == MouseButtonState::Press)
@@ -205,7 +205,9 @@ bool Interaction::orbit()
     {
         QVector3D direction = camera->position-entity->transform->position;
         float dist = direction.length();
-
+        QVector2D tmp = QVector2D(direction.x(),direction.z());
+        dist = tmp.length();
+        printf("%f\n",dist);
         bool pollEvents = input->mouseButtons[Qt::RightButton] == MouseButtonState::Pressed;
         bool cameraChanged = false;
 
@@ -237,22 +239,32 @@ bool Interaction::orbit()
             float yawDisp = 0.5f * mousex_delta;
             float pitchDisp = 0.5f * mousey_delta;
 
+
+//            while (camera->yaw < 0.0f) camera->yaw += 360.0f;
+//            while (camera->yaw > 360.0f) camera->yaw -= 360.0f;
+//            if (camera->pitch > 89.0f) camera->pitch = 89.0f;
+//            if (camera->pitch < -89.0f) camera->pitch = -89.0f;
+
+            float yaw = qDegreesToRadians(camera->yaw-yawDisp);
+            float pitch = qDegreesToRadians(camera->pitch-pitchDisp);
+
+
+
+            camera->position.setX(dist*sin(yaw));
+            //camera->position.setY(dist*sin(pitch));
+            camera->position.setZ(dist*cos(yaw));
+//            camera->position.setX(dist*-sin(pitch)*cos(yaw));
+//            camera->position.setY(dist*-sin(yaw));
+//            camera->position.setZ(dist*cos(pitch)*cos(yaw));
+            printf("1Look at: x:%f, y:%f, z:%f\n",  camera->position.x(),  camera->position.y(),  camera->position.z());
+            //camera->LookAt(entity->transform->position);
+
             camera->yaw -= yawDisp;
-            camera->pitch -= pitchDisp;
-
-            while (camera->yaw < 0.0f) camera->yaw += 360.0f;
-            while (camera->yaw > 360.0f) camera->yaw -= 360.0f;
-            if (camera->pitch > 89.0f) camera->pitch = 89.0f;
-            if (camera->pitch < -89.0f) camera->pitch = -89.0f;
-
-            float yaw = qDegreesToRadians(camera->yaw);
-            float pitch = qDegreesToRadians(camera->pitch);
-
-            camera->position.setX(dist*cos(pitch)*cos(yaw));
-            camera->position.setY(dist*sin(pitch));
-            camera->position.setZ(dist*cos(pitch)*sin(yaw));
-
-            camera->LookAt(entity->transform->position);
+             camera->pitch -= pitchDisp;
+             while (  camera->yaw < 0.0f)   camera->yaw += 360.0f;
+             while (  camera->yaw > 360.0f)   camera->yaw -= 360.0f;
+             if (  camera->pitch > 89.0f)   camera->pitch = 89.0f;
+             if (  camera->pitch < -89.0f)   camera->pitch = -89.0f;
         }
 
         if (!(pollEvents || qAbs(mousex_delta) > 0.1f || qAbs(mousey_delta) > 0.1f))

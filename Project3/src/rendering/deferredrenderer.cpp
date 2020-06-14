@@ -262,8 +262,7 @@ void DeferredRenderer::renderBloom(Camera* camera)
     const float h = camera->viewportHeight;
 
     //horizontal blur
-    float threshold = 1.0;
-    passBlightBrightPixels(fboBloom1, QVector2D(w/2,h/2),GL_COLOR_ATTACHMENT0,fboColor,LOD(0),threshold);
+    passBlightBrightPixels(fboBloom1, QVector2D(w/2,h/2),GL_COLOR_ATTACHMENT0,fboColor,LOD(0));
     gl->glBindTexture(GL_TEXTURE_2D,rtBright);
     gl->glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -287,7 +286,7 @@ void DeferredRenderer::renderBloom(Camera* camera)
 
 }
 
-void DeferredRenderer::passBlightBrightPixels(FramebufferObject *fbo, const QVector2D &viewportSize, GLenum colorAttachment, uint inputTexture, int inputLod, float threshold)
+void DeferredRenderer::passBlightBrightPixels(FramebufferObject *fbo, const QVector2D &viewportSize, GLenum colorAttachment, uint inputTexture, int inputLod)
 {
     fbo->bind();
     gl->glDrawBuffer(colorAttachment);
@@ -299,6 +298,7 @@ void DeferredRenderer::passBlightBrightPixels(FramebufferObject *fbo, const QVec
 
     if(program.bind())
     {
+        program.setUniformValue("threshold",scene->threshold);
         program.setUniformValue("colorTexture",0);
         gl->glActiveTexture(GL_TEXTURE0);
         gl->glBindTexture(GL_TEXTURE_2D, inputTexture);
