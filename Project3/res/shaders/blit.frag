@@ -3,6 +3,8 @@
 uniform sampler2D colorTexture;
 uniform bool blitAlpha;
 uniform bool blitDepth;
+uniform float camHeight;
+uniform bool water;
 
 in vec2 texCoord;
 
@@ -24,6 +26,11 @@ void main(void)
     }
 
     // Gamma correction
+    if(water && camHeight<0.0)
+    {
+        outColor.rgb=mix(outColor.rgb,vec3(0.0,0.5,0.8),0.3);
+    }
+
     outColor = pow(outColor, vec4(1.0/2.2));
     outColor.a = 1.0;
 }

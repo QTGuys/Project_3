@@ -51,9 +51,9 @@ bool Interaction::idle()
 {
     if (input->mouseButtons[Qt::RightButton] == MouseButtonState::Pressed)
     {
-//         if(selection->count>0)
-//            nextState=State::Orbit;
-//        else
+         if(selection->count>0)
+            nextState=State::Orbit;
+         else
             nextState = State::Navigating;
     }
     else if (input->mouseButtons[Qt::LeftButton] == MouseButtonState::Press)
@@ -201,59 +201,65 @@ bool Interaction::orbit()
 {
     Entity* entity = selection->entities[0];
 
-//    if(entity)
-//    {
-//        camera->LookAt(entity->transform->position);
+    if(entity)
+    {
+        QVector3D direction = camera->position-entity->transform->position;
+        float dist = direction.length();
 
-//        bool pollEvents = input->mouseButtons[Qt::RightButton] == MouseButtonState::Pressed;
-//        bool cameraChanged = false;
+        bool pollEvents = input->mouseButtons[Qt::RightButton] == MouseButtonState::Pressed;
+        bool cameraChanged = false;
 
-//        // Mouse delta smoothing
-//        static float mousex_delta_prev[3] = {};
-//        static float mousey_delta_prev[3] = {};
-//        static int curr_mousex_delta_prev = 0;
-//        static int curr_mousey_delta_prev = 0;
-//        float mousey_delta = 0.0f;
-//        float mousex_delta = 0.0f;
-//        if (pollEvents) {
-//            mousex_delta_prev[curr_mousex_delta_prev] = (input->mousex - input->mousex_prev);
-//            mousey_delta_prev[curr_mousey_delta_prev] = (input->mousey - input->mousey_prev);
-//            curr_mousex_delta_prev = curr_mousex_delta_prev % 3;
-//            curr_mousey_delta_prev = curr_mousey_delta_prev % 3;
-//            mousex_delta += mousex_delta_prev[0] * 0.33;
-//            mousex_delta += mousex_delta_prev[1] * 0.33;
-//            mousex_delta += mousex_delta_prev[2] * 0.33;
-//            mousey_delta += mousey_delta_prev[0] * 0.33;
-//            mousey_delta += mousey_delta_prev[1] * 0.33;
-//            mousey_delta += mousey_delta_prev[2] * 0.33;
-//        }
+        // Mouse delta smoothing
+        static float mousex_delta_prev[3] = {};
+        static float mousey_delta_prev[3] = {};
+        static int curr_mousex_delta_prev = 0;
+        static int curr_mousey_delta_prev = 0;
+        float mousey_delta = 0.0f;
+        float mousex_delta = 0.0f;
+        if (pollEvents) {
+            mousex_delta_prev[curr_mousex_delta_prev] = (input->mousex - input->mousex_prev);
+            mousey_delta_prev[curr_mousey_delta_prev] = (input->mousey - input->mousey_prev);
+            curr_mousex_delta_prev = curr_mousex_delta_prev % 3;
+            curr_mousey_delta_prev = curr_mousey_delta_prev % 3;
+            mousex_delta += mousex_delta_prev[0] * 0.33;
+            mousex_delta += mousex_delta_prev[1] * 0.33;
+            mousex_delta += mousex_delta_prev[2] * 0.33;
+            mousey_delta += mousey_delta_prev[0] * 0.33;
+            mousey_delta += mousey_delta_prev[1] * 0.33;
+            mousey_delta += mousey_delta_prev[2] * 0.33;
+        }
 
-//        QVector3D rightVec;
+        // Camera navigation
+        if (mousex_delta != 0 || mousey_delta != 0)
+        {
+            cameraChanged = true;
 
-//        // Camera navigation
-//        if (mousex_delta != 0 || mousey_delta != 0)
-//        {
-//            float yaw = camera->yaw;
-//            float pitch = camera->pitch;
-//            QVector3D front=QVector3D(-sinf(qDegreesToRadians(yaw)) * cosf(qDegreesToRadians(pitch)),
-//                                      sinf(qDegreesToRadians(pitch)),
-//                                      -cosf(qDegreesToRadians(yaw)) * cosf(qDegreesToRadians(pitch)));
+            float yawDisp = 0.5f * mousex_delta;
+            float pitchDisp = 0.5f * mousey_delta;
 
-//            QVector3D right = QVector3D(cosf(qDegreesToRadians(yaw)),
-//                                        0.0f,
-//                                        -sinf(qDegreesToRadians(yaw)));
+            camera->yaw -= yawDisp;
+            camera->pitch -= pitchDisp;
 
-//            QVector3D up = QVector3D::crossProduct(right,front)*mousey_delta;
+            while (camera->yaw < 0.0f) camera->yaw += 360.0f;
+            while (camera->yaw > 360.0f) camera->yaw -= 360.0f;
+            if (camera->pitch > 89.0f) camera->pitch = 89.0f;
+            if (camera->pitch < -89.0f) camera->pitch = -89.0f;
 
+            float yaw = qDegreesToRadians(camera->yaw);
+            float pitch = qDegreesToRadians(camera->pitch);
 
-//            camera->position+=up;
+            camera->position.setX(dist*cos(pitch)*cos(yaw));
+            camera->position.setY(dist*sin(pitch));
+            camera->position.setZ(dist*cos(pitch)*sin(yaw));
 
-//            printf("CamPos: %f, %f, %f\n",rightVec.x(),rightVec.y(),rightVec.z());
-//        }
-//    }
+            camera->LookAt(entity->transform->position);
+        }
 
-    nextState = State::Idle;
-
+        if (!(pollEvents || qAbs(mousex_delta) > 0.1f || qAbs(mousey_delta) > 0.1f))
+        {
+            nextState = State::Idle;
+        }
+    }
     return true;
 }
 

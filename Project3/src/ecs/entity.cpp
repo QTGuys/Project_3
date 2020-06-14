@@ -9,6 +9,7 @@ Entity::Entity() :
     for (int i = 0; i < MAX_COMPONENTS; ++i)
         components[i] = nullptr;
     transform = new Transform;
+
     QRandomGenerator generator = QRandomGenerator64();
     generator.seed(time(NULL));
     selection_code = generator.generateDouble();

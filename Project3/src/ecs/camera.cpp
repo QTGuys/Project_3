@@ -77,58 +77,17 @@ void Camera::prepareMatrices()
 
 void Camera::LookAt(QVector3D point)
 {
-//    QVector4D camFront= worldMatrix*QVector4D(0.0, 0.0, -1.0, 0.0);
-//    QVector4D camRight = worldMatrix*QVector4D(1.0, 0.0, 0.0,0.0);
-//    QVector4D camUp = worldMatrix*QVector4D(0.0,1.0,0.0,0.0);
-
-//    QVector3D f = point - position;
-//    QVector4D newFront = QVector4D(f,0.0);
-//    newFront.normalize();
-
-//    //New Right vector
-//    QVector4D newRight = QVector4D(QVector3D::crossProduct(newFront.toVector3D(),camUp.toVector3D()),0.0);
-//    newRight.normalize();
-
-//    //New up vector
-//    QVector4D newUp=QVector4D(QVector3D::crossProduct(newRight.toVector3D(),newFront.toVector3D()),0.0);
-//    newUp.normalize();
-
-//    float rightDiff = qRadiansToDegrees(qAcos(QVector4D::dotProduct(newRight,camRight)));
-//    float upDiff = qRadiansToDegrees(qAcos(QVector4D::dotProduct(newUp,camUp)));
-
-//    QVector3D crossYaw = QVector3D::crossProduct(newRight.toVector3D(),camRight.toVector3D());
-//    crossYaw.normalize();
-//    QVector3D crossPitch = QVector3D::crossProduct(newUp.toVector3D(),camUp.toVector3D());
-//    crossPitch.normalize();
-
-//    if(QVector3D::dotProduct(QVector3D(0.0,1.0,0.0),crossYaw)<0.0)
-//    {
-//        rightDiff=-rightDiff;
-//    }
-
-//    if(QVector3D::dotProduct(crossPitch,QVector3D(1.0,0.0,0.0))<0.0)
-//    {
-//        upDiff=-upDiff;
-//    }
-
-//    yaw-=rightDiff;
-//    pitch-=upDiff;
-
     QVector3D direction = point - position;
 
-       direction.normalize();
+    direction.normalize();
 
-       pitch = qRadiansToDegrees(asin(direction.y()));
+    pitch = qRadiansToDegrees(asin(direction.y()));
+    yaw = (qRadiansToDegrees(atan2(direction.x(),direction.z()))-180.0);
 
-      yaw = -(qRadiansToDegrees(atan2(direction.x(),direction.z()))-180.0);
-
-
-       if (yaw < 0.0f) yaw += 360.0f;
-       if (yaw > 360.0f) yaw -= 360.0f;
-       if (pitch > 89.0f) pitch = 89.0f;
-       if (pitch < -89.0f) pitch = -89.0f;
-
-       //printf("\nPitch:%f Yaw:%f",pitch,yaw);
+    while (yaw < 0.0f) yaw += 360.0f;
+    while (yaw > 360.0f) yaw -= 360.0f;
+    if (pitch > 89.0f) pitch = 89.0f;
+    if (pitch < -89.0f) pitch = -89.0f;
 }
 
 

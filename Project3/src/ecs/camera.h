@@ -24,6 +24,7 @@ public:
     QVector2D worldToScreenPoint(const QVector3D &p);
     void LookAt(QVector3D point);
 
+
     // Create the matrices
     void prepareMatrices();
 

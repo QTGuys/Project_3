@@ -125,7 +125,11 @@ DISTFILES += \
     res/shaders/selection_shading.frag \
     res/shaders/selection_shading.vert \
     res/shaders/texture_view.frag \
-    res/shaders/texture_view.vert
+    res/shaders/texture_view.vert \
+    res/shaders/water_clipping_render.frag \
+    res/shaders/water_clipping_render.vert \
+    res/shaders/water_texture_shader.frag \
+    res/shaders/water_texture_shader.vert
 
 # OpenGL
 win32: LIBS += -lopengl32

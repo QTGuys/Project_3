@@ -13,6 +13,7 @@ uniform vec4 backgroundColor;
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
 uniform sampler2D mask;
+uniform bool grid;
 
 in vec2 texCoord;
 out vec4 outColor;
@@ -22,7 +23,6 @@ vec4 Background()
 {
     vec4 ret;
 
-    gl_FragDepth = 1.0;
     vec2 texCoords = gl_FragCoord.xy / viewportSize;
     vec3 rayViewspace = normalize(vec3(vec2(left,bottom)+texCoords * vec2(right-left, top-bottom), -znear));
     vec3 rayWorldspace = vec3(worldMatrix * vec4(rayViewspace,0.0));
@@ -46,7 +46,7 @@ vec4 Background()
 vec4 Grid(vec3 hitPoint,vec3 eyePos, vec3 gridSteps)
 {
     float dist = length(hitPoint.xz-eyePos.xz);
-    float mixFactor = min(dist/(zfar/200.0),1.0);
+    float mixFactor = min(dist/(zfar/10.0),1.0);
     float lineMF=mixFactor;
 
     vec4 gridColor;
@@ -66,7 +66,6 @@ vec4 Grid(vec3 hitPoint,vec3 eyePos, vec3 gridSteps)
 
     if(line_1==1.0)
     {
-
         gridColor=vec4(1.0,0.0,1.0,1.0);
         lineMF=min(mixFactor*1.5,1.0);
 
@@ -83,6 +82,10 @@ vec4 Grid(vec3 hitPoint,vec3 eyePos, vec3 gridSteps)
         }
 
         ret = mix(gridColor,backColor,lineMF);
+    }
+    else
+    {
+        gl_FragDepth = 1.0;
     }
 
     return ret;
@@ -104,6 +107,7 @@ bool Outline()
     bool outline = c < 0.1 && (l>0.1 || r > 0.1 || b > 0.1 || t > 0.1);
 
     outColor = vec4(1.0,0.5,0.0,1.0);
+    gl_FragDepth = 0.0;
 
     return outline;
 }
@@ -111,45 +115,54 @@ void main()
 {
     if(!Outline())
     {
-        //Eye direction using camera parameters
-        vec3 eyeDirEyespace;
-        eyeDirEyespace.x = left + texCoord.x *(right-left);
-        eyeDirEyespace.y = bottom + texCoord.y * (top-bottom);
-        eyeDirEyespace.z = -znear;
-
-        //Tranform to camera position
-        vec3 eyeDirWorldspace = normalize(mat3(worldMatrix)*eyeDirEyespace); //like this because its a vector and we don't need the transform
-
-        //Eye Position (center)
-        vec3 eyePosEyespace=vec3(0.0,0.0,0.0);
-        vec3 eyePosWorldspace = vec3(worldMatrix*vec4(eyePosEyespace,1.0)); //like this because we need the transformation
-
-        //Plane parameters
-        vec3 planeNormal = vec3(0.0,1.0,0.0);
-        vec3 planePosition = vec3(0.0,0.0,0.0);
-
-        //Ray-Plane Intersection
-        float numerator = dot(planePosition-eyePosWorldspace, planeNormal);
-        float denominator = dot(eyeDirWorldspace,planeNormal);
-        float t= numerator/denominator;
-
-        if(t>0.0)
+        if(grid)
         {
-            vec3 hitWorldspace=eyePosWorldspace+eyeDirWorldspace*t;
+            //Eye direction using camera parameters
+            vec3 eyeDirEyespace;
+            eyeDirEyespace.x = left + texCoord.x *(right-left);
+            eyeDirEyespace.y = bottom + texCoord.y * (top-bottom);
+            eyeDirEyespace.z = -znear;
 
-            //Small bias to avoid z-fighting
-            vec3 bias = (eyePosWorldspace-hitWorldspace)*0.005;
+            //Tranform to camera position
+            vec3 eyeDirWorldspace = normalize(mat3(worldMatrix)*eyeDirEyespace); //like this because its a vector and we don't need the transform
 
-            //fragment depth
-            vec4 hitClip = projectionMatrix*viewMatrix*vec4(hitWorldspace+bias,1.0);
-            float ndcDepth = hitClip.z/hitClip.w;
-            gl_FragDepth=((gl_DepthRange.diff*ndcDepth)+gl_DepthRange.near + gl_DepthRange.far)/2.0;
+            //Eye Position (center)
+            vec3 eyePosEyespace=vec3(0.0,0.0,0.0);
+            vec3 eyePosWorldspace = vec3(worldMatrix*vec4(eyePosEyespace,1.0)); //like this because we need the transformation
 
-            outColor = Grid(hitWorldspace,eyePosWorldspace,vec3(1.0,10.0,100.0));
+            //Plane parameters
+            vec3 planeNormal = vec3(0.0,1.0,0.0);
+            vec3 planePosition = vec3(0.0,0.0,0.0);
+
+            //Ray-Plane Intersection
+            float numerator = dot(planePosition-eyePosWorldspace, planeNormal);
+            float denominator = dot(eyeDirWorldspace,planeNormal);
+            float t= numerator/denominator;
+
+            if(t>0.0)
+            {
+                vec3 hitWorldspace=eyePosWorldspace+eyeDirWorldspace*t;
+
+                //Small bias to avoid z-fighting
+                vec3 bias = (eyePosWorldspace-hitWorldspace)*0.005;
+
+                //fragment depth
+                vec4 hitClip = projectionMatrix*viewMatrix*vec4(hitWorldspace+bias,1.0);
+                float ndcDepth = hitClip.z/hitClip.w;
+                gl_FragDepth=((gl_DepthRange.diff*ndcDepth)+gl_DepthRange.near + gl_DepthRange.far)/2.0;
+
+                outColor = Grid(hitWorldspace,eyePosWorldspace,vec3(1.0,10.0,100.0));
+            }
+            else
+            {
+                outColor=Background();
+                gl_FragDepth = 1.0;
+            }
         }
         else
         {
             outColor=Background();
+            gl_FragDepth = 1.0;
         }
     }
 }

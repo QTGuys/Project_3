@@ -33,6 +33,9 @@ public:
     QVector<Entity*> entities;
     QVector4D backgroundColor;
     Entity* selectedEntity = nullptr;
+
+    bool renderWater=false;
+    bool renderGrid=true;
 };
 
 
