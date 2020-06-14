@@ -147,7 +147,6 @@ void DeferredRenderer::initializeBloom()
 void DeferredRenderer::resize(int width, int height)
 {
     DeleteBuffers();
-     resizeBloom(width,height);
     CreateBuffers(width,height);
 
 }
