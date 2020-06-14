@@ -35,6 +35,7 @@ public:
     Entity* selectedEntity = nullptr;
 
     bool renderWater=false;
+    bool renderBloom = true;
     bool renderGrid=true;
 };
 

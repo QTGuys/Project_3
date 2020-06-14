@@ -246,7 +246,8 @@ void DeferredRenderer::render(Camera *camera)
     gl->glDisable(GL_BLEND);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    renderBloom(camera);
+    if(scene->renderBloom)
+        renderBloom(camera);
     passBlit();
 
 }
@@ -758,16 +759,22 @@ void DeferredRenderer::passMeshes(Camera *camera)
                 program.setUniformValue("worldViewMatrix", worldViewMatrix);
                 program.setUniformValue("normalMatrix", normalMatrix);
 
+                gl->glEnable(GL_CULL_FACE);
+                gl->glCullFace(GL_FRONT);
                 for (auto submesh : resourceManager->sphere->submeshes)
                 {
                     // Send the material to the shader
-                    Material *material = resourceManager->materialLight;
+
+                    Material *material = resourceManager->materialWhite;
+                    SEND_TEXTURE("albedoTexture", material->albedoTexture, resourceManager->texWhite, 0);
                     program.setUniformValue("albedo", material->albedo);
                     program.setUniformValue("emissive", material->emissive);
                     program.setUniformValue("smoothness", material->smoothness);
 
                     submesh->draw();
                 }
+                gl->glCullFace(GL_BACK);
+                gl->glDisable(GL_CULL_FACE);
             }
         }
 
@@ -1041,9 +1048,9 @@ void DeferredRenderer::passBlit()
             }
             else if(shownTexture() == "Material")
             {
-                 gl->glBindTexture(GL_TEXTURE_2D, rtReflection);
+                 gl->glBindTexture(GL_TEXTURE_2D, tMaterial);
             }
-            else if(shownTexture() == "Depth")
+            else if(shownTexture() == "Bright")
             {
                  gl->glBindTexture(GL_TEXTURE_2D, rtBright);
             }

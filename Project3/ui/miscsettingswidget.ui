@@ -100,26 +100,9 @@
        </widget>
       </item>
       <item>
-       <widget class="QCheckBox" name="checkBoxWater">
-        <property name="text">
-         <string>Water</string>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QCheckBox" name="checkBoxLightSources">
         <property name="text">
          <string>Light sources</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="checkBoxSelectionOutline">
-        <property name="text">
-         <string>Selection outline (TODO)</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -136,9 +119,22 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <widget class="QLabel" name="label_3">
+       <widget class="QCheckBox" name="checkBoxWater">
         <property name="text">
-         <string>TODO: Checkboxes for render techniques</string>
+         <string>Water</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBoxBloom">
+        <property name="text">
+         <string>Bloom</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+        <property name="tristate">
+         <bool>false</bool>
         </property>
        </widget>
       </item>

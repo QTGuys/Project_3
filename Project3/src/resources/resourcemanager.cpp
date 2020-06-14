@@ -231,6 +231,7 @@ ResourceManager::ResourceManager()
     materialWhite = createMaterial();
     materialWhite->name = "White material";
     materialWhite->includeForSerialization = false;
+    materialWhite->albedoTexture = texWhite;
 
     materialLight = createMaterial();
     materialLight->name = "Material light";

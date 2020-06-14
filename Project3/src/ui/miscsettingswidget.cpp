@@ -18,7 +18,7 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
     connect(ui->buttonBackgroundColor, SIGNAL(clicked()), this, SLOT(onBackgroundColorClicked()));
     connect(ui->checkBoxGrid, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
     connect(ui->checkBoxLightSources, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
-    connect(ui->checkBoxSelectionOutline, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
+    connect(ui->checkBoxBloom, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
     connect(ui->checkBoxWater,SIGNAL(clicked()),this, SLOT(onVisualHintChanged()));
 }
 
@@ -63,6 +63,7 @@ void MiscSettingsWidget::onVisualHintChanged()
 {
     miscSettings->renderLightSources = ui->checkBoxLightSources->isChecked();
     scene->renderWater = ui->checkBoxWater->isChecked();
+    scene->renderBloom = ui->checkBoxBloom->isChecked();
     scene->renderGrid=ui->checkBoxGrid->isChecked();
     emit settingsChanged();
 }

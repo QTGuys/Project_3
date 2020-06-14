@@ -51,9 +51,9 @@ bool Interaction::idle()
 {
     if (input->mouseButtons[Qt::RightButton] == MouseButtonState::Pressed)
     {
-         if(selection->count>0)
-            nextState=State::Orbit;
-         else
+//         if(selection->count>0)
+//            nextState=State::Orbit;
+//         else
             nextState = State::Navigating;
     }
     else if (input->mouseButtons[Qt::LeftButton] == MouseButtonState::Press)
